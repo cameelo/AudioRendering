@@ -13,6 +13,7 @@ public:
 	unsigned int vertexCount, indexCount;
 public:
 	Mesh();
+	Mesh(std::vector<float>, std::vector<unsigned int>);
 	void setShader(GLuint shaderID); //No se si poner un puntero al shader que usa
 	void draw();
 	void addTexture(std::vector<float> textcoords);

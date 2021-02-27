@@ -107,9 +107,12 @@ RTCDevice initializeDevice()
  *
  * Scenes, like devices, are reference-counted.
  */
-Scene initializeScene(RTCDevice device)
+Scene * initializeScene(RTCDevice device)
 {
-	return Scene("models/cornell_box.obj", device);
+	Scene * new_scene = new Scene(device);
+	new_scene->addMeshFromObj("models/cornell_box.obj", device);
+	new_scene->commitScene();
+	return new_scene;
 }
 
 /*
@@ -228,12 +231,9 @@ void close() {
 	SDL_Quit();
 }
 
-
-
 int main(int argc, char* argv[]) {
 	init();
 	Camera cam = Camera(WIDTH, HEIGHT, 45, window);
-	Mesh* water = new Mesh();
 	ShaderProgram* pass = new ShaderProgram("assets/shaders/pass.vert", "assets/shaders/pass.frag");
 	bool exit = false;
 
@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
 	double frameTime = 1000.0f / 65.0f;
 
 	RTCDevice device = initializeDevice();
-	Scene scene = initializeScene(device);
+	Scene * scene = initializeScene(device);
 
 	std::clock_t start;
 	while (!exit) {
@@ -277,12 +277,12 @@ int main(int argc, char* argv[]) {
 		glUniformMatrix4fv(worldTransformID, 1, GL_FALSE, &cam.modelViewProjectionMatrix[0][0]);
 		GLuint vistaID = glGetUniformLocation(pass->getId(), "vista");
 		glUniform3fv(vistaID, 1, &((cam.ref - cam.pos)[0]));
-		water->draw();
+		scene->draw();
 		pass->unbind();
 
 		/* Cast rays */
-		castRay(scene.getRTCScene(), 0, 0, -1, 0, 0, 1);
-		castRay(scene.getRTCScene(), 1, 1, -1, 0, 0, 1);
+		castRay(scene->getRTCScene(), 0, 0, -1, 0, 0, 1);
+		castRay(scene->getRTCScene(), 1, 1, -1, 0, 0, 1);
 
 		double dif = frameTime - ((clock() - start) * (1000.0 / double(CLOCKS_PER_SEC)));
 		if (dif > 0) {
@@ -291,6 +291,7 @@ int main(int argc, char* argv[]) {
 		SDL_GL_SwapWindow(window);
 	}
 
+	delete(scene);
 	/* Though not strictly necessary in this example, you should
 	/* always make sure to release resources allocated through Embree. */
 	rtcReleaseDevice(device);
