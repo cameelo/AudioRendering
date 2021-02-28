@@ -89,11 +89,12 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\admin\Documents\FING\ProyectoGrado\AudioRendering\embree-3.12.1.x64.vc14.windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\libs\SDL2-2.0.14\include;$(SolutionDir)\libs\glm;$(SolutionDir)\libs\glew-2.1.0\include;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>C:\Users\admin\Documents\FING\ProyectoGrado\AudioRendering\embree-3.12.1.x64.vc14.windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>embree3.lib;tbb.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\libs\glew-2.1.0\lib\Release\x64;$(SolutionDir)\libs\SDL2-2.0.14\lib\x64;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>embree3.lib;tbb.lib;opengl32.lib;glew32.lib;SDL2.lib;SDL2main.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -131,16 +132,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="pch.cpp" />
     <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="tiny_obj_loader.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="pch.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="tiny_obj_loader.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="assets\shaders\pass.frag" />
+    <None Include="assets\shaders\pass.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

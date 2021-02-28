@@ -24,6 +24,18 @@
     <ClCompile Include="Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderProgram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tiny_obj_loader.h">
@@ -32,8 +44,25 @@
     <ClInclude Include="Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderProgram.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="assets\shaders\pass.frag" />
+    <None Include="assets\shaders\pass.vert" />
   </ItemGroup>
 </Project>
