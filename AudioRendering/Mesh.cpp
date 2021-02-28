@@ -34,7 +34,7 @@ Mesh::Mesh(){
 	textured = false;
 }
 
-Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices) {
+Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, float * normals) {
 	glGenVertexArrays(1, &vaoID);
 	glBindVertexArray(vaoID);
 
@@ -51,6 +51,11 @@ Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices) {
 
 	this->indexCount = indices.size();
 
+	glGenBuffers(1, &this->normalsID);
+	glBindBuffer(GL_ARRAY_BUFFER, this->normalsID);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), normals, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
 	textured = false;
 }
 
@@ -58,7 +63,8 @@ void Mesh::draw() {
 	glBindVertexArray(vaoID);
 	//El 0 indica que es el primer parametro del "in" del shader, el 1 el siguiente, etc
 	glEnableVertexAttribArray(0);
-	if(textured) glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(1);
+	if(textured) glEnableVertexAttribArray(2);
 	//glDrawArrays(GL_TRIANGLES,0,6);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->indicesID);
 	glDrawElements(
@@ -68,7 +74,8 @@ void Mesh::draw() {
 		(void*)0           // element array buffer offset
 	);
 	glDisableVertexAttribArray(0);
-	if(textured) glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(1);
+	if(textured) glDisableVertexAttribArray(2);
 }
 
 void Mesh::addTexture(std::vector<float> textcoords) {
@@ -76,7 +83,7 @@ void Mesh::addTexture(std::vector<float> textcoords) {
 	glGenBuffers(1, &textureID);
 	glBindBuffer(GL_ARRAY_BUFFER, this->textureID);
 	glBufferData(GL_ARRAY_BUFFER, textcoords.size() * sizeof(float), &textcoords[0], GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 	textured = true;
 }
@@ -88,6 +95,7 @@ void Mesh::setShader(GLuint shaderID) {
 Mesh::~Mesh() {
 	glDeleteBuffers(1, &this->verticesID);
 	glDeleteBuffers(1, &this->indicesID);
+	glDeleteBuffers(1, &this->normalsID);
 	if(textured)glDeleteBuffers(1, &this->textureID);
 	glDeleteVertexArrays(1, &vaoID);
 }

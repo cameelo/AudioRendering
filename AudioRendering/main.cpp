@@ -110,7 +110,8 @@ RTCDevice initializeDevice()
 Scene * initializeScene(RTCDevice device)
 {
 	Scene * new_scene = new Scene(device);
-	new_scene->addMeshFromObj("models/cornell_box.obj", device);
+	new_scene->addMeshFromObj("models/suzanne.obj", device);
+	//new_scene->addMeshFromObj("models/teapot.obj", device);
 	new_scene->commitScene();
 	return new_scene;
 }
@@ -277,6 +278,9 @@ int main(int argc, char* argv[]) {
 		glUniformMatrix4fv(worldTransformID, 1, GL_FALSE, &cam.modelViewProjectionMatrix[0][0]);
 		GLuint vistaID = glGetUniformLocation(pass->getId(), "vista");
 		glUniform3fv(vistaID, 1, &((cam.ref - cam.pos)[0]));
+		//Directional light. To do a point light more shader code is needed.
+		GLuint lightDirID = glGetUniformLocation(pass->getId(), "lightDir");
+		glUniform3fv(lightDirID, 1, &(glm::vec3(1, 0, 0)[0]));
 		scene->draw();
 		pass->unbind();
 

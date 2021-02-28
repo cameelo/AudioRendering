@@ -9,11 +9,11 @@ class Mesh{
 private:
 	bool textured;
 public:
-	GLuint verticesID, indicesID, vaoID, shaderID, textureID;
+	GLuint verticesID, indicesID, vaoID, shaderID, textureID, normalsID;
 	unsigned int vertexCount, indexCount;
 public:
 	Mesh();
-	Mesh(std::vector<float>, std::vector<unsigned int>);
+	Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, float * normals);
 	void setShader(GLuint shaderID); //No se si poner un puntero al shader que usa
 	void draw();
 	void addTexture(std::vector<float> textcoords);
