@@ -110,7 +110,7 @@ RTCDevice initializeDevice()
 Scene * initializeScene(RTCDevice device)
 {
 	Scene * new_scene = new Scene(device);
-	new_scene->addMeshFromObj("models/suzanne.obj", device);
+	new_scene->addObjectFromOBJ("models/suzanne.obj", glm::vec3(0.0f,0.0f,0.0f), 5.0f, &device);
 	//new_scene->addMeshFromObj("models/teapot.obj", device);
 	new_scene->commitScene();
 	return new_scene;
@@ -175,7 +175,7 @@ void close() {
 int main(int argc, char* argv[]) {
 	init();
 	Camera cam = Camera(WIDTH, HEIGHT, 45, window);
-	Source src = Source(glm::vec3(0, 0, -10), 2);
+	Source * source = new Source(glm::vec3(0, 0, -10), 2, "models/sphere.obj");
 	ShaderProgram* pass = new ShaderProgram("assets/shaders/pass.vert", "assets/shaders/pass.frag");
 	bool exit = false;
 
@@ -215,17 +215,25 @@ int main(int argc, char* argv[]) {
 		cam.update();
 		draw();
 		pass->bind();
+		//ViewProjectionMatrix
 		GLuint worldTransformID = glGetUniformLocation(pass->getId(), "worldTransform");
 		glUniformMatrix4fv(worldTransformID, 1, GL_FALSE, &cam.modelViewProjectionMatrix[0][0]);
+		GLuint modelMatrixID = glGetUniformLocation(pass->getId(), "modelMatrix");
 		GLuint vistaID = glGetUniformLocation(pass->getId(), "vista");
 		glUniform3fv(vistaID, 1, &((cam.ref - cam.pos)[0]));
 		//Directional light. To do a point light more shader code is needed.
 		GLuint lightDirID = glGetUniformLocation(pass->getId(), "lightDir");
 		glUniform3fv(lightDirID, 1, &(glm::vec3(1, 0, 0)[0]));
-		scene->draw();
+		for (int i = 0; i < scene->objects.size(); ++i) {
+			glUniformMatrix4fv(modelMatrixID, 1, GL_FALSE, &scene->objects[i]->getModelMatrix()[0][0]);
+			scene->objects[i]->draw();
+		}
+		glUniformMatrix4fv(modelMatrixID, 1, GL_FALSE, &source->getModelMatrix()[0][0]);
+		source->draw();
 		pass->unbind();
 
-		OmnidirectionalUniformSphereRayCast(scene, &cam, &src);
+		OmnidirectionalUniformSphereRayCast(scene, &cam, source);
+		//viewDirRayCast(scene, &cam, source);
 
 		double dif = frameTime - ((clock() - start) * (1000.0 / double(CLOCKS_PER_SEC)));
 		if (dif > 0) {

@@ -8,9 +8,10 @@ out vec3 passPosition;
 out vec3 Normal;
 
 uniform mat4 worldTransform;
+uniform mat4 modelMatrix;
 
 void main(){
 	passPosition = position;
-	gl_Position = worldTransform * vec4(position,1.0);
+	gl_Position = worldTransform * modelMatrix *  vec4(position,1.0);
 	Normal = normal;
 }

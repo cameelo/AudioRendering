@@ -12,6 +12,12 @@ contiguous samples are 1/44100 seconds apart.*/
 #include "Camera.h"
 #include "Source.h"
 
+#include<random>
+#include<cmath>
+#include<chrono>
+
+#define LISTENER_SPHERE_RADIUS 2.0f
+
 //Returns the distance to the intersection if there is one, -1 if not.
 float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, float radius) {
 	//The following is obtained from solving the ecuation system given by the ray and sphere
@@ -41,7 +47,7 @@ float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, f
 void castRay(RTCScene scene, 
 	glm::vec3 origin, 
 	glm::vec3 dir,
-	Source * source)
+	glm::vec3 listener_pos)
 {
 	/*
 	 * The intersect context can be used to set intersection
@@ -76,17 +82,17 @@ void castRay(RTCScene scene,
 	 */
 	rtcIntersect1(scene, &context, &rayhit);
 
-	float distance_to_source = raySphereIntersection(origin, dir, source->pos, source->sphere_radius);
-	if (distance_to_source >= 0) {
-		printf("intersection with source was found\n");
-	}
+	float distance_to_source = raySphereIntersection(origin, dir, listener_pos, LISTENER_SPHERE_RADIUS);
 
 	//printf("%f, %f, %f: ", ox, oy, oz);
 	if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
 	{
+		//printf("intersection with scene was found\n");
 		//Ray intersects source
 		if (distance_to_source >= 0 && distance_to_source > rayhit.ray.tfar) {
-			printf("intersection blocked by object\n");
+			printf("intersection with listener blocked by object\n");
+		}else if (distance_to_source >= 0) {
+			printf("intersection with listener was found\n");
 		}
 
 		//Reflect ray and continue
@@ -103,19 +109,36 @@ void castRay(RTCScene scene,
 }
 
 void OmnidirectionalUniformSphereRayCast(Scene * scene, Camera * camera, Source * source) {
-	srand(time(NULL));
-	float rnd1 = (float)rand() / RAND_MAX;
-	float rnd2 = (float)rand() / RAND_MAX;
-
-	int n = 20;		//The number of subdivisions in the sphere is n^2
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::mt19937 generator(seed);
+	std::uniform_real_distribution<double> uniform01(0.0, 1.0);
 	
-	for (int i = 0; i < n; ++i) {
-		for (int j = 0; j < n; ++j) {
-			float dx = 2 * sqrtf((i + rnd1) / n - pow((i + rnd1) / n, 2)) * cos(2 * M_PI*(j + rnd2) / n);
-			float dy = 2 * sqrtf((i + rnd1) / n - pow((i + rnd1) / n, 2)) * sin(2 * M_PI*(j + rnd2) / n);
-			float dz = 1 - 2 * (i + rnd1) / n;
-			glm::vec3 dir = glm::normalize(glm::vec3(dx, dy, dz));
-			castRay(scene->getRTCScene(), camera->pos, dir, source);
-		}
+	for (int i = 0; i < 1000; ++i) {
+		double theta = 2 * M_PI * uniform01(generator);
+		double phi = acos(1 - 2 * uniform01(generator));
+		double dx = sin(phi) * cos(theta);
+		double dy = sin(phi) * sin(theta);
+		double dz = cos(phi);
+		glm::vec3 dir = glm::normalize(glm::vec3(dx, dy, dz));
+		castRay(scene->getRTCScene(), source->pos, dir, camera->pos);
 	}
+
+	////srand(time(NULL));
+	//float rnd1 = uniform01(generator);
+	//float rnd2 = uniform01(generator);
+
+	//int n = 20;		//The number of subdivisions in the sphere is n^2
+	//for (int i = 0; i < n; ++i) {
+	//	for (int j = 0; j < n; ++j) {
+	//		float dx = 2 * sqrtf((i + rnd1) / n - pow((i + rnd1) / n, 2)) * cos(2 * M_PI*(j + rnd2) / n);
+	//		float dy = 2 * sqrtf((i + rnd1) / n - pow((i + rnd1) / n, 2)) * sin(2 * M_PI*(j + rnd2) / n);
+	//		float dz = 1 - 2 * (i + rnd1) / n;
+	//		glm::vec3 dir = glm::normalize(glm::vec3(dx, dy, dz));
+	//		castRay(scene->getRTCScene(), source->pos, dir, camera->pos);
+	//	}
+	//}
+}
+
+void viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
+	castRay(scene->getRTCScene(), camera->pos, camera->ref-camera->pos, source->pos);
 }
