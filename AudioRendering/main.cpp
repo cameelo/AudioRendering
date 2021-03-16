@@ -232,8 +232,8 @@ int main(int argc, char* argv[]) {
 		source->draw();
 		pass->unbind();
 
-		OmnidirectionalUniformSphereRayCast(scene, &cam, source);
-		//viewDirRayCast(scene, &cam, source);
+		//OmnidirectionalUniformSphereRayCast(scene, &cam, source);
+		viewDirRayCast(scene, &cam, source);
 
 		double dif = frameTime - ((clock() - start) * (1000.0 / double(CLOCKS_PER_SEC)));
 		if (dif > 0) {

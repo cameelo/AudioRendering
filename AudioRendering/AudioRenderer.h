@@ -47,7 +47,8 @@ float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, f
 void castRay(RTCScene scene, 
 	glm::vec3 origin, 
 	glm::vec3 dir,
-	glm::vec3 listener_pos)
+	glm::vec3 listener_pos,
+	unsigned int reflection_num)
 {
 	/*
 	 * The intersect context can be used to set intersection
@@ -56,7 +57,6 @@ void castRay(RTCScene scene,
 	 */
 	struct RTCIntersectContext context;
 	rtcInitIntersectContext(&context);
-
 	/*
 	 * The ray hit structure holds both the ray and the hit.
 	 * The user must initialize it properly -- see API documentation
@@ -76,36 +76,52 @@ void castRay(RTCScene scene,
 	rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
 	rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
-	/*
-	 * There are multiple variants of rtcIntersect. This one
-	 * intersects a single ray with the scene.
-	 */
 	rtcIntersect1(scene, &context, &rayhit);
 
+	//Check if ray interescts listener
 	float distance_to_source = raySphereIntersection(origin, dir, listener_pos, LISTENER_SPHERE_RADIUS);
-
-	//printf("%f, %f, %f: ", ox, oy, oz);
+	//Check if ray intersects room
 	if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
 	{
-		//printf("intersection with scene was found\n");
-		//Ray intersects source
-		if (distance_to_source >= 0 && distance_to_source > rayhit.ray.tfar) {
-			printf("intersection with listener blocked by object\n");
-		}else if (distance_to_source >= 0) {
-			printf("intersection with listener was found\n");
+		//If listener intersection found
+		if (distance_to_source >= 0) {
+			//If listener intersection is before room interection
+			if (distance_to_source < rayhit.ray.tfar) {
+				//Add distance_to_source to overall distance
+				//Calculate parameters for transfer function (e.g. absorption from specular reflections)
+				//Return parameters and traveled distance to add to the histogram
+				printf("Found intersection with listener. %i\n", reflection_num);
+				return;
+			}
 		}
 
-		//Reflect ray and continue
+		//Calculate remaining energy if less than something also return
+		if (reflection_num > 10) {
+			printf("Ray exahusted.\n");
+			return;
+		}
+		//Reflect ray with geometry normal
+		glm::vec3 new_dir = glm::reflect(dir, glm::vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
+		//New origin is obtained by moving tfar in the ray direction from the current origin
+		glm::vec3 new_origin = origin + dir * rayhit.ray.tfar;
+		//When casting new ray new origin must me moved delta in the new direction to avoid numeric errors. (Ray begining inside the geometry)
+		castRay(scene, new_origin+new_dir*0.01f, new_dir, listener_pos, reflection_num+1);
+
 		/* Note how geomID and primID identify the geometry we just hit.
 		 * We could use them here to interpolate geometry information,
 		 * compute shading, etc. */
-		/*printf("Found intersection on geometry %d, primitive %d at tfar=%f\n",
-			rayhit.hit.geomID,
-			rayhit.hit.primID,
-			rayhit.ray.tfar);*/
 	}
-	//else
-	//	printf("Did not find any intersection.\n");
+	else {
+		if (distance_to_source >= 0) {
+			//Add distance_to_source to overall distance
+			//Calculate parameters for transfer function (e.g. absorption from specular reflections)
+			//Return parameters and traveled distance to add to the histogram
+			printf("Found intersection with listener. %i\n", reflection_num);
+			return;
+		}
+	}
+	printf("No intersection with listener found.\n");
+	return;
 }
 
 void OmnidirectionalUniformSphereRayCast(Scene * scene, Camera * camera, Source * source) {
@@ -120,7 +136,7 @@ void OmnidirectionalUniformSphereRayCast(Scene * scene, Camera * camera, Source 
 		double dy = sin(phi) * sin(theta);
 		double dz = cos(phi);
 		glm::vec3 dir = glm::normalize(glm::vec3(dx, dy, dz));
-		castRay(scene->getRTCScene(), source->pos, dir, camera->pos);
+		castRay(scene->getRTCScene(), source->pos, dir, camera->pos, 0);
 	}
 
 	////srand(time(NULL));
@@ -140,5 +156,5 @@ void OmnidirectionalUniformSphereRayCast(Scene * scene, Camera * camera, Source 
 }
 
 void viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
-	castRay(scene->getRTCScene(), camera->pos, camera->ref-camera->pos, source->pos);
+	castRay(scene->getRTCScene(), camera->pos, camera->ref-camera->pos, source->pos, 0);
 }

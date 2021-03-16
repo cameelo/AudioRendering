@@ -1,5 +1,6 @@
 #include "Scene.h"
 #include "OBJLoader.h"
+#include <functional>
 
 Scene::Scene(RTCDevice device) {
 	this->rtc_scene = rtcNewScene(device);
@@ -13,6 +14,16 @@ void Scene::addObjectFromOBJ(std::string file_name, glm::vec3 pos, float size, R
 	this->objects.push_back(object);
 	/*Mesh * mesh = new Mesh(props.vertices, props.indices, props.normals);
 	this->meshes.push_back(mesh);*/
+
+	//Scale and translate vertices for embree
+	for (int i = 0; i < props.vertices.size(); i = i + 3) {
+		props.vertices[i] *= size;
+		props.vertices[i+1] *= size;
+		props.vertices[i+2] *= size;
+		props.vertices[i] += pos.x;
+		props.vertices[i + 1] += pos.y;
+		props.vertices[i + 2] += pos.z;
+	}
 
 	if (device) {
 		RTCGeometry geom = rtcNewGeometry(*device, RTC_GEOMETRY_TYPE_TRIANGLE);
