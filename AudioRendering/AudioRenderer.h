@@ -12,8 +12,6 @@ contiguous samples are 1/44100 seconds apart.*/
 #include "Camera.h"
 #include "Source.h"
 
-#include "rtaudio-5.1.0/RtAudio.h"
-
 #include<random>
 #include<cmath>
 #include<chrono>

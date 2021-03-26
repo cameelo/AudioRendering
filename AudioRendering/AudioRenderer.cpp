@@ -1,4 +1,5 @@
 #include "AudioRenderer.h"
+#include "RtAudio.h"
 
 //Returns the distance to the intersection if there is one, -1 if not.
 float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, float radius) {
@@ -180,22 +181,30 @@ AudioRenderer::AudioRenderer() {
 
 	unsigned int bufferBytes, bufferFrames = 512;
 	RtAudio::StreamParameters iParams, oParams;
-	iParams.deviceId = 0; // first available device
+	iParams.deviceId = audioApi.getDefaultInputDevice(); // first available device
 	iParams.nChannels = 2;
-	oParams.deviceId = 0; // first available device
+	iParams.firstChannel = 0;
+	oParams.deviceId = audioApi.getDefaultOutputDevice(); // first available device
 	oParams.nChannels = 2;
+	oParams.firstChannel = 0;
 
+	RtAudio::StreamOptions options;
+	bufferBytes = bufferFrames * 2 * 4;
 	try {
-		audioApi.openStream(&oParams, &iParams, RTAUDIO_SINT32, 44100, &bufferFrames, &inout, (void *)&bufferBytes);
+		audioApi.openStream(&oParams, &iParams, RTAUDIO_SINT16, 44100, &bufferFrames, &inout, (void *)&bufferBytes, &options);
 	}
 	catch (RtAudioError& e) {
 		e.printMessage();
 		exit(0);
 	}
 
-	bufferBytes = bufferFrames * 2 * 4;
-
-	audioApi.startStream();
+	try {
+		audioApi.startStream();
+	}
+	catch (RtAudioError& e) {
+		e.printMessage();
+		exit(0);
+	}
 }
 
 void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {

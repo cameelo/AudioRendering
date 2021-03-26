@@ -48,9 +48,6 @@
     <ClCompile Include="AudioRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rtaudio-5.1.0\RtAudio.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tiny_obj_loader.h">
@@ -87,6 +84,42 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rtaudio-5.1.0\RtAudio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\asio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\asiodrivers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\asiodrvr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\asiolist.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\asiosys.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\dsound.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\functiondiscoverykeys_devpkey.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\ginclude.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\iasiodrv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\iasiothiscallresolver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\rtaudio_c.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rtaudio-5.1.0\soundcard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

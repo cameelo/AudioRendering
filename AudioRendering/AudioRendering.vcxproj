@@ -89,11 +89,11 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\libs\SDL2-2.0.14\include;$(SolutionDir)\libs\glm;$(SolutionDir)\libs\glew-2.1.0\include;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\admin\Documents\FING\ProyectoGrado\AudioRendering\libs\RtAudio\include;$(SolutionDir)\libs\SDL2-2.0.14\include;$(SolutionDir)\libs\glm;$(SolutionDir)\libs\glew-2.1.0\include;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SolutionDir)\libs\glew-2.1.0\lib\Release\x64;$(SolutionDir)\libs\SDL2-2.0.14\lib\x64;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>embree3.lib;tbb.lib;opengl32.lib;glew32.lib;SDL2.lib;SDL2main.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\libs\RtAudio\lib;$(SolutionDir)\libs\glew-2.1.0\lib\Release\x64;$(SolutionDir)\libs\SDL2-2.0.14\lib\x64;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>embree3.lib;tbb.lib;opengl32.lib;glew32.lib;SDL2.lib;SDL2main.lib;glu32.lib;rtaudio.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
@@ -138,7 +138,6 @@
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="OBJLoader.cpp" />
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="rtaudio-5.1.0\RtAudio.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneObject.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
@@ -151,7 +150,19 @@
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="OBJLoader.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="rtaudio-5.1.0\asio.h" />
+    <ClInclude Include="rtaudio-5.1.0\asiodrivers.h" />
+    <ClInclude Include="rtaudio-5.1.0\asiodrvr.h" />
+    <ClInclude Include="rtaudio-5.1.0\asiolist.h" />
+    <ClInclude Include="rtaudio-5.1.0\asiosys.h" />
+    <ClInclude Include="rtaudio-5.1.0\dsound.h" />
+    <ClInclude Include="rtaudio-5.1.0\functiondiscoverykeys_devpkey.h" />
+    <ClInclude Include="rtaudio-5.1.0\ginclude.h" />
+    <ClInclude Include="rtaudio-5.1.0\iasiodrv.h" />
+    <ClInclude Include="rtaudio-5.1.0\iasiothiscallresolver.h" />
     <ClInclude Include="rtaudio-5.1.0\RtAudio.h" />
+    <ClInclude Include="rtaudio-5.1.0\rtaudio_c.h" />
+    <ClInclude Include="rtaudio-5.1.0\soundcard.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SceneObject.h" />
     <ClInclude Include="ShaderProgram.h" />
