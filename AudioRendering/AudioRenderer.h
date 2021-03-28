@@ -3,6 +3,7 @@
 frequency is derived from the variations in these amplitudes considering that two 
 contiguous samples are 1/44100 seconds apart.*/
 
+#include "RtAudio.h"
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_common.h>
 #include <stdlib.h>
@@ -20,6 +21,9 @@ contiguous samples are 1/44100 seconds apart.*/
 #define NUMBER_OF_RAYS 10000
 //Speed of sound in the air at 20 °C in m/s
 #define SPEED_OF_SOUND 343
+#define SAMPLE_FORMAT RTAUDIO_SINT16
+
+typedef signed short SAMPLE_TYPE;
 
 typedef struct rayHistory{
 	float travelled_distance;
@@ -27,16 +31,34 @@ typedef struct rayHistory{
 	int reflection_num;
 } rayHistory;
 
-typedef struct path {
+typedef struct audioPath {
 	float travelled_distance;
 	float remaining_energy_factor;
-	int reflection_num;
-} path;
+} audioPath;
+
+typedef struct audioPaths{
+	audioPath * ptr;
+	size_t * size;
+	//paths are used by audio library thread and main thread. (And possibly multiple rayCasting threads)
+	std::mutex * mutex;
+} audioPaths;
+
+typedef struct audioCallbackData {
+	unsigned int * pos;
+	/*A buffer to store old samples to use in posterior calculations.
+	To store 1 second of samples size should be: (sampleRate x num_channels x sample_num_bytes)*/
+	unsigned int * samplesRecordBufferSize;
+	SAMPLE_TYPE * samplesRecordBuffer;
+	audioPaths * paths;
+} audioCallbackData;
 
 class AudioRenderer {
 public:
 	//buffer to store all frames up to n seconds
-	std::vector<path> * paths; //paths result of the audio render
+	RtAudio * audioApi;
+	audioPaths currentPaths; //paths result of the audio render
+	unsigned int * bufferBytes;
+	audioCallbackData * audioData;
 public:
 	AudioRenderer();
 	void render(Scene * scene, Camera * camera, Source * source);

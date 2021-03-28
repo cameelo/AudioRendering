@@ -1,5 +1,5 @@
 #include "AudioRenderer.h"
-#include "RtAudio.h"
+#include <mutex>
 
 //Returns the distance to the intersection if there is one, -1 if not.
 float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, float radius) {
@@ -32,7 +32,7 @@ void castRay(RTCScene scene,
 	glm::vec3 dir,
 	glm::vec3 listener_pos,
 	rayHistory history,
-	std::vector<path> * paths)
+	audioPaths * paths)
 {
 	/*
 	 * The intersect context can be used to set intersection
@@ -74,19 +74,24 @@ void castRay(RTCScene scene,
 				//Add distance_to_source to overall distance
 				//Calculate parameters for transfer function (e.g. absorption from specular reflections)
 				//Return parameters and traveled distance to add to the histogram
-				//printf("Found intersection with listener. %i\n", reflection_num);
+				//printf("Found intersection with listener. %i\n", history.reflection_num);
 				//Add path to paths
+				audioPath newAudioPath = { history.travelled_distance, history.remaining_energy_factor };
+				paths->mutex->lock();
+				*paths->size++;
+				paths->ptr = (audioPath*)realloc(paths->ptr, *paths->size);
+				paths->ptr[*paths->size - 1] = newAudioPath;
+				paths->mutex->unlock();
 				return;
 			}
-			/*else {
-				printf("Intersection blocked by geometry. %i\n", reflection_num);
-				return;
-			}*/
+			else {
+				//printf("Intersection blocked by geometry. %i\n", history.reflection_num);
+			}
 		}
 
 		//Calculate remaining energy if less than something also return
 		if (history.reflection_num > 10) {
-			printf("Ray exahusted.\n");
+			//printf("Ray exahusted.\n");
 			return;
 		}
 		//Reflect ray with geometry normal
@@ -108,7 +113,13 @@ void castRay(RTCScene scene,
 			//Add distance_to_source to overall distance
 			//Calculate parameters for transfer function (e.g. absorption from specular reflections)
 			//Return parameters and traveled distance to add to the histogram
-			//printf("Found intersection with listener. %i\n", reflection_num);
+			//printf("Found intersection with listener. %i\n", history.reflection_num);
+			audioPath newAudioPath = { history.travelled_distance, history.remaining_energy_factor };
+			paths->mutex->lock();
+			paths->size++;
+			paths->ptr = (audioPath*)realloc(paths->ptr, *paths->size);
+			paths->ptr[*paths->size - 1] = newAudioPath;
+			paths->mutex->unlock();
 			return;
 		}
 	}
@@ -119,7 +130,7 @@ void castRay(RTCScene scene,
 void OmnidirectionalUniformSphereRayCast(Scene * scene, 
 	Camera * camera, 
 	Source * source, 
-	std::vector<path> * paths)
+	audioPaths * paths)
 {
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::mt19937 generator(seed);
@@ -158,7 +169,7 @@ void viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
 }
 
 //Callback that processes audio frames
-int inout(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
+int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 	double streamTime, RtAudioStreamStatus status, void *data)
 {
 	// Since the number of input and output channels is equal, we can do
@@ -172,26 +183,40 @@ int inout(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 
 AudioRenderer::AudioRenderer() {
 	//Init audio stream
-	RtAudio audioApi;
+	this->audioApi = new RtAudio();
 
-	if (audioApi.getDeviceCount() < 1) {
+	if (this->audioApi->getDeviceCount() < 1) {
 		std::cout << "\nNo audio devices found!\n";
 		exit(0);
 	}
 
-	unsigned int bufferBytes, bufferFrames = 512;
+	unsigned int bufferBytes, bufferFrames = 512, sampleRate = 44100, num_channles = 2;
 	RtAudio::StreamParameters iParams, oParams;
-	iParams.deviceId = audioApi.getDefaultInputDevice(); // first available device
-	iParams.nChannels = 2;
+	iParams.deviceId = this->audioApi->getDefaultInputDevice(); // first available device
+	iParams.nChannels = num_channles;
 	iParams.firstChannel = 0;
-	oParams.deviceId = audioApi.getDefaultOutputDevice(); // first available device
-	oParams.nChannels = 2;
+	oParams.deviceId = this->audioApi->getDefaultOutputDevice(); // first available device
+	oParams.nChannels = num_channles;
 	oParams.firstChannel = 0;
 
 	RtAudio::StreamOptions options;
-	bufferBytes = bufferFrames * 2 * 4;
+	this->bufferBytes = (unsigned int*)malloc(sizeof(unsigned int));
+	*this->bufferBytes = bufferFrames * 2 * 4;
+
+	//This whole struct will be accessed from the audio api thread, so it needs to be in heap.
+	this->audioData = (audioCallbackData*)malloc(sizeof(audioCallbackData));
+	this->audioData->pos = (unsigned int*)malloc(sizeof(unsigned int));
+	*this->audioData->pos = 0;
+	this->audioData->samplesRecordBufferSize = (unsigned int*)malloc(sizeof(unsigned int));
+	*this->audioData->samplesRecordBufferSize = sampleRate * num_channles * sizeof(SAMPLE_TYPE);
+	this->audioData->samplesRecordBuffer = (SAMPLE_TYPE*)malloc(*this->audioData->samplesRecordBufferSize);
+	this->audioData->paths = (audioPaths*)malloc(sizeof(audioPaths));
+	this->audioData->paths->size = (size_t*)malloc(sizeof(size_t));
+	this->audioData->paths->ptr = NULL;
+	this->audioData->paths->mutex = new std::mutex;
+
 	try {
-		audioApi.openStream(&oParams, &iParams, RTAUDIO_SINT16, 44100, &bufferFrames, &inout, (void *)&bufferBytes, &options);
+		this->audioApi->openStream(&oParams, &iParams, SAMPLE_FORMAT, sampleRate, &bufferFrames, &processAudio, (void *)this->bufferBytes, &options);
 	}
 	catch (RtAudioError& e) {
 		e.printMessage();
@@ -199,16 +224,29 @@ AudioRenderer::AudioRenderer() {
 	}
 
 	try {
-		audioApi.startStream();
+		this->audioApi->startStream();
 	}
 	catch (RtAudioError& e) {
 		e.printMessage();
 		exit(0);
 	}
+
+	*this->currentPaths.size = 0;
+	this->currentPaths.ptr = NULL;
+	this->currentPaths.mutex = new std::mutex;
 }
 
 void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
-	OmnidirectionalUniformSphereRayCast(scene, camera, source, this->paths);
+	OmnidirectionalUniformSphereRayCast(scene, camera, source, &this->currentPaths);
+
+	//Update audio paths with paths found in this frame
+	this->audioData->paths->mutex->lock();
+	this->audioData->paths->ptr = (audioPath*)realloc(this->audioData->paths->ptr, *this->currentPaths.size);
+	this->audioData->paths->size = this->currentPaths.size;
+	memcpy(this->audioData->paths->ptr, this->currentPaths.ptr, *this->currentPaths.size);
+	this->audioData->paths->mutex->unlock();
+	*this->currentPaths.size = 0;
+	free(this->currentPaths.ptr);
 }
 
 AudioRenderer::~AudioRenderer() {
