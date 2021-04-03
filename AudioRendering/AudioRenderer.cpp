@@ -76,12 +76,12 @@ void castRay(RTCScene scene,
 				//Return parameters and traveled distance to add to the histogram
 				//printf("Found intersection with listener. %i\n", history.reflection_num);
 				//Add path to paths
-				audioPath newAudioPath = { history.travelled_distance, history.remaining_energy_factor };
+				/*audioPath newAudioPath = { history.travelled_distance + distance_to_source, history.remaining_energy_factor };
 				paths->mutex->lock();
-				*paths->size++;
-				paths->ptr = (audioPath*)realloc(paths->ptr, *paths->size);
+				(*paths->size)++;
+				paths->ptr = (audioPath*)realloc(paths->ptr, *paths->size * sizeof(audioPath));
 				paths->ptr[*paths->size - 1] = newAudioPath;
-				paths->mutex->unlock();
+				paths->mutex->unlock();*/
 				return;
 			}
 			else {
@@ -114,12 +114,12 @@ void castRay(RTCScene scene,
 			//Calculate parameters for transfer function (e.g. absorption from specular reflections)
 			//Return parameters and traveled distance to add to the histogram
 			//printf("Found intersection with listener. %i\n", history.reflection_num);
-			audioPath newAudioPath = { history.travelled_distance, history.remaining_energy_factor };
+			/*audioPath newAudioPath = { history.travelled_distance + distance_to_source, history.remaining_energy_factor };
 			paths->mutex->lock();
-			paths->size++;
-			paths->ptr = (audioPath*)realloc(paths->ptr, *paths->size);
+			(*paths->size)++;
+			paths->ptr = (audioPath*)realloc(paths->ptr, *paths->size * sizeof(audioPath));
 			paths->ptr[*paths->size - 1] = newAudioPath;
-			paths->mutex->unlock();
+			paths->mutex->unlock();*/
 			return;
 		}
 	}
@@ -181,6 +181,18 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 	return 0;
 }
 
+int inout(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
+	double streamTime, RtAudioStreamStatus status, void *data)
+{
+	// Since the number of input and output channels is equal, we can do
+	// a simple buffer copy operation here.
+	if (status) std::cout << "Stream over/underflow detected." << std::endl;
+
+	unsigned long *bytes = (unsigned long *)data;
+	memcpy(outputBuffer, inputBuffer, *bytes);
+	return 0;
+}
+
 AudioRenderer::AudioRenderer() {
 	//Init audio stream
 	this->audioApi = new RtAudio();
@@ -191,20 +203,24 @@ AudioRenderer::AudioRenderer() {
 	}
 
 	unsigned int bufferBytes, bufferFrames = 512, sampleRate = 44100, num_channles = 2;
-	RtAudio::StreamParameters iParams, oParams;
-	iParams.deviceId = this->audioApi->getDefaultInputDevice(); // first available device
-	iParams.nChannels = num_channles;
-	iParams.firstChannel = 0;
-	oParams.deviceId = this->audioApi->getDefaultOutputDevice(); // first available device
-	oParams.nChannels = num_channles;
-	oParams.firstChannel = 0;
+	this->streamParams = new streamParameters();
+	this->streamParams->iParams = new RtAudio::StreamParameters();
+	this->streamParams->iParams->deviceId = this->audioApi->getDefaultInputDevice();
+	this->streamParams->iParams->nChannels = num_channles;
+	this->streamParams->iParams->firstChannel = 0;
+	this->streamParams->oParams = new RtAudio::StreamParameters();
+	this->streamParams->oParams->deviceId = this->audioApi->getDefaultOutputDevice();
+	this->streamParams->oParams->nChannels = num_channles;
+	this->streamParams->oParams->firstChannel = 0;
+	this->streamParams->bufferFrames = new unsigned int(bufferFrames);
+	this->streamParams->options = new RtAudio::StreamOptions();
 
-	RtAudio::StreamOptions options;
-	this->bufferBytes = (unsigned int*)malloc(sizeof(unsigned int));
-	*this->bufferBytes = bufferFrames * 2 * 4;
+	this->bufferBytes = new unsigned int(bufferFrames * 2 * sizeof(SAMPLE_TYPE));
+	/*this->bufferBytes = (unsigned int*)malloc(sizeof(unsigned int));
+	*this->bufferBytes = bufferFrames * 2 * 2;*/
 
 	//This whole struct will be accessed from the audio api thread, so it needs to be in heap.
-	this->audioData = (audioCallbackData*)malloc(sizeof(audioCallbackData));
+	/*this->audioData = (audioCallbackData*)malloc(sizeof(audioCallbackData));
 	this->audioData->pos = (unsigned int*)malloc(sizeof(unsigned int));
 	*this->audioData->pos = 0;
 	this->audioData->samplesRecordBufferSize = (unsigned int*)malloc(sizeof(unsigned int));
@@ -213,10 +229,13 @@ AudioRenderer::AudioRenderer() {
 	this->audioData->paths = (audioPaths*)malloc(sizeof(audioPaths));
 	this->audioData->paths->size = (size_t*)malloc(sizeof(size_t));
 	this->audioData->paths->ptr = NULL;
-	this->audioData->paths->mutex = new std::mutex;
+	this->audioData->paths->mutex = new std::mutex;*/
+
+	//this->audioData = new audioCallbackData;
 
 	try {
-		this->audioApi->openStream(&oParams, &iParams, SAMPLE_FORMAT, sampleRate, &bufferFrames, &processAudio, (void *)this->bufferBytes, &options);
+		this->audioApi->openStream(this->streamParams->oParams, this->streamParams->iParams, SAMPLE_FORMAT, sampleRate,
+			this->streamParams->bufferFrames, &inout, (void *)this->bufferBytes, this->streamParams->options);
 	}
 	catch (RtAudioError& e) {
 		e.printMessage();
@@ -231,22 +250,33 @@ AudioRenderer::AudioRenderer() {
 		exit(0);
 	}
 
-	*this->currentPaths.size = 0;
+	/*this->currentPaths = (audioPaths*)malloc(sizeof(audioPaths));
+	this->currentPaths->size = (size_t*)malloc(sizeof(size_t));
+	this->currentPaths->ptr = NULL;
+	this->currentPaths->mutex = new std::mutex;*/
+
+	//this->currentPaths = { NULL, new size_t(0), new std::mutex };
+	/**this->currentPaths.size = 0;
 	this->currentPaths.ptr = NULL;
-	this->currentPaths.mutex = new std::mutex;
+	this->currentPaths.mutex = new std::mutex;*/
 }
 
 void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
-	OmnidirectionalUniformSphereRayCast(scene, camera, source, &this->currentPaths);
+	OmnidirectionalUniformSphereRayCast(scene, camera, source, this->currentPaths);
 
-	//Update audio paths with paths found in this frame
-	this->audioData->paths->mutex->lock();
-	this->audioData->paths->ptr = (audioPath*)realloc(this->audioData->paths->ptr, *this->currentPaths.size);
-	this->audioData->paths->size = this->currentPaths.size;
-	memcpy(this->audioData->paths->ptr, this->currentPaths.ptr, *this->currentPaths.size);
-	this->audioData->paths->mutex->unlock();
-	*this->currentPaths.size = 0;
-	free(this->currentPaths.ptr);
+	////Update audio paths with paths found in this frame
+	//this->audioData->paths->mutex->lock();
+	////free before realloc? malloc and free?
+	//if (this->audioData->paths->ptr) {
+	//	free(this->audioData->paths->ptr);
+	//}
+	//this->audioData->paths->ptr = (audioPath*)malloc(*this->currentPaths->size * sizeof(audioPath));
+	//this->audioData->paths->size = this->currentPaths->size;
+	//memcpy(this->audioData->paths->ptr, this->currentPaths->ptr, *this->currentPaths->size);
+	//this->audioData->paths->mutex->unlock();
+	//*this->currentPaths->size = 0;
+	//free(this->currentPaths->ptr);
+	//this->currentPaths->ptr = NULL;
 }
 
 AudioRenderer::~AudioRenderer() {

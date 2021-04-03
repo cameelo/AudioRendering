@@ -122,13 +122,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\admin\Documents\FING\ProyectoGrado\AudioRendering\embree-3.12.1.x64.vc14.windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\admin\Documents\FING\ProyectoGrado\AudioRendering\libs\RtAudio\include;$(SolutionDir)\libs\SDL2-2.0.14\include;$(SolutionDir)\libs\glm;$(SolutionDir)\libs\glew-2.1.0\include;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Users\admin\Documents\FING\ProyectoGrado\AudioRendering\embree-3.12.1.x64.vc14.windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>embree3.lib;tbb.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\libs\RtAudio\lib;$(SolutionDir)\libs\glew-2.1.0\lib\Release\x64;$(SolutionDir)\libs\SDL2-2.0.14\lib\x64;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>embree3.lib;tbb.lib;opengl32.lib;glew32.lib;SDL2.lib;SDL2main.lib;glu32.lib;rtaudio.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

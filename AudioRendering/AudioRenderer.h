@@ -16,6 +16,7 @@ contiguous samples are 1/44100 seconds apart.*/
 #include<random>
 #include<cmath>
 #include<chrono>
+#include <mutex>
 
 #define LISTENER_SPHERE_RADIUS 2.0f
 #define NUMBER_OF_RAYS 10000
@@ -52,13 +53,20 @@ typedef struct audioCallbackData {
 	audioPaths * paths;
 } audioCallbackData;
 
+typedef struct streamParameters {
+	RtAudio::StreamParameters *iParams, *oParams;
+	unsigned int * bufferFrames;
+	RtAudio::StreamOptions * options;
+} streamParameters;
+
 class AudioRenderer {
 public:
 	//buffer to store all frames up to n seconds
 	RtAudio * audioApi;
-	audioPaths currentPaths; //paths result of the audio render
+	audioPaths * currentPaths; //paths result of the audio render
+	streamParameters * streamParams;
 	unsigned int * bufferBytes;
-	audioCallbackData * audioData;
+	//audioCallbackData * audioData;
 public:
 	AudioRenderer();
 	void render(Scene * scene, Camera * camera, Source * source);
