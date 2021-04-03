@@ -236,7 +236,7 @@ int main(int argc, char* argv[]) {
 		source->draw();
 		pass->unbind();
 
-		//audio.render(scene, &cam, source);
+		audio.render(scene, &cam, source);
 
 		double dif = frameTime - ((clock() - start) * (1000.0 / double(CLOCKS_PER_SEC)));
 		if (dif > 0) {

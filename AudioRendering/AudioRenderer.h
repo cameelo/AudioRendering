@@ -39,16 +39,16 @@ typedef struct audioPath {
 
 typedef struct audioPaths{
 	audioPath * ptr;
-	size_t * size;
+	size_t size;
 	//paths are used by audio library thread and main thread. (And possibly multiple rayCasting threads)
 	std::mutex * mutex;
 } audioPaths;
 
 typedef struct audioCallbackData {
-	unsigned int * pos;
+	unsigned int pos;
 	/*A buffer to store old samples to use in posterior calculations.
 	To store 1 second of samples size should be: (sampleRate x num_channels x sample_num_bytes)*/
-	unsigned int * samplesRecordBufferSize;
+	unsigned int samplesRecordBufferSize;
 	SAMPLE_TYPE * samplesRecordBuffer;
 	audioPaths * paths;
 } audioCallbackData;
@@ -66,7 +66,7 @@ public:
 	audioPaths * currentPaths; //paths result of the audio render
 	streamParameters * streamParams;
 	unsigned int * bufferBytes;
-	//audioCallbackData * audioData;
+	audioCallbackData * audioData;
 public:
 	AudioRenderer();
 	void render(Scene * scene, Camera * camera, Source * source);
