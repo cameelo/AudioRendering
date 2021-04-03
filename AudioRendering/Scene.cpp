@@ -12,8 +12,7 @@ void Scene::addObjectFromOBJ(std::string file_name, glm::vec3 pos, float size, R
 
 	SceneObject * object = new SceneObject(pos,size, props);
 	this->objects.push_back(object);
-	/*Mesh * mesh = new Mesh(props.vertices, props.indices, props.normals);
-	this->meshes.push_back(mesh);*/
+	//delete[](props.normals);
 
 	//Scale and translate vertices for embree
 	for (int i = 0; i < props.vertices.size(); i = i + 3) {
@@ -37,11 +36,11 @@ void Scene::addObjectFromOBJ(std::string file_name, glm::vec3 pos, float size, R
 
 		std::copy(props.vertices.begin(), props.vertices.end(), vertices);
 
-		unsigned* indices = (unsigned*)rtcSetNewGeometryBuffer(geom,
+		unsigned int* indices = (unsigned int*)rtcSetNewGeometryBuffer(geom,
 			RTC_BUFFER_TYPE_INDEX,
 			0,
 			RTC_FORMAT_UINT3,
-			3 * sizeof(unsigned),
+			3 * sizeof(unsigned int),
 			props.indices.size() / 3); //FACE COUNT (3 indices are counted as 1 item since they represent a single triangle)
 
 		std::copy(props.indices.begin(), props.indices.end(), indices);

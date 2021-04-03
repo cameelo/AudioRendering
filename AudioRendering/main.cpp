@@ -174,6 +174,9 @@ void close() {
 
 int main(int argc, char* argv[]) {
 	init();
+	RTCDevice device = initializeDevice();
+	Scene * scene = initializeScene(device);
+
 	AudioRenderer audio = AudioRenderer();
 	Camera cam = Camera(WIDTH, HEIGHT, 45, window);
 	Source * source = new Source(glm::vec3(0, 5, -10), 2, "models/sphere.obj");
@@ -185,9 +188,6 @@ int main(int argc, char* argv[]) {
 	SDL_Event event;
 
 	double frameTime = 1000.0f / 65.0f;
-
-	RTCDevice device = initializeDevice();
-	Scene * scene = initializeScene(device);
 
 	std::clock_t start;
 	while (!exit) {
@@ -236,7 +236,7 @@ int main(int argc, char* argv[]) {
 		source->draw();
 		pass->unbind();
 
-		audio.render(scene, &cam, source);
+		//audio.render(scene, &cam, source);
 
 		double dif = frameTime - ((clock() - start) * (1000.0 / double(CLOCKS_PER_SEC)));
 		if (dif > 0) {
