@@ -172,12 +172,32 @@ void viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
 int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 	double streamTime, RtAudioStreamStatus status, void *data)
 {
-	// Since the number of input and output channels is equal, we can do
-	// a simple buffer copy operation here.
 	if (status) std::cout << "Stream over/underflow detected." << std::endl;
 
-	unsigned long *bytes = (unsigned long *)data;
-	memcpy(outputBuffer, inputBuffer, *bytes);
+	audioCallbackData *renderData = (audioCallbackData *)data;
+
+	//First we copy the new samples into our buffer
+	renderData->samplesRecordBuffer->insert((SAMPLE_TYPE*)inputBuffer, renderData->bufferFrames);
+	////Then we process the frames
+	//renderData->paths->mutex->lock();
+	//for (int i = 0; i < renderData->paths->size; ++i) {
+	//	size_t iter = renderData->samplesRecordBuffer->head;
+	//	while (iter != renderData->samplesRecordBuffer->tail) {
+	//		//Calculate contribution to outputBuffer, energy and position.
+	//	}
+	//}
+	//memcpy(outputBuffer, inputBuffer, renderData->bufferBytes);
+	CircularBuffer<SAMPLE_TYPE> * allBuffer = renderData->samplesRecordBuffer;
+	if (allBuffer->tail + 1 - renderData->bufferFrames < 0) {
+		size_t carry_over = renderData->bufferFrames - (allBuffer->tail + 1);
+		memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[renderData->samplesRecordBufferSize - 1 - carry_over], carry_over*sizeof(SAMPLE_TYPE));
+		memcpy(&((SAMPLE_TYPE*)outputBuffer)[carry_over], renderData->samplesRecordBuffer, (allBuffer->tail + 1) * sizeof(SAMPLE_TYPE));
+	}
+	else {
+		memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[allBuffer->tail - (renderData->bufferFrames-1)], renderData->bufferFrames * sizeof(SAMPLE_TYPE));
+		//Quizas deberia tener ambos valores: nframes y nbytes para no tener que calcular ninguno
+	}
+	/*memcpy(outputBuffer, renderData->samplesRecordBuffer, renderData->bufferBytes);*/
 	return 0;
 }
 
@@ -221,9 +241,12 @@ AudioRenderer::AudioRenderer() {
 
 	//This whole struct will be accessed from the audio api thread, so it needs to be in heap.
 	this->audioData = new audioCallbackData();
+	//Total frames in a buffer for all channels
+	this->audioData->bufferFrames = bufferFrames * num_channles;
 	this->audioData->pos = 0;
-	this->audioData->samplesRecordBufferSize = sampleRate * num_channles * sizeof(SAMPLE_TYPE);
-	this->audioData->samplesRecordBuffer = new SAMPLE_TYPE[this->audioData->samplesRecordBufferSize];
+	//1 second's worth of samples. This size is in bytes.
+	this->audioData->samplesRecordBufferSize = sampleRate * num_channles;
+	this->audioData->samplesRecordBuffer = new CircularBuffer<SAMPLE_TYPE>(this->audioData->samplesRecordBufferSize);
 	this->audioData->paths = new audioPaths();
 	this->audioData->paths->ptr = NULL;
 	this->audioData->paths->size = 0;
@@ -231,7 +254,7 @@ AudioRenderer::AudioRenderer() {
 
 	try {
 		this->audioApi->openStream(this->streamParams->oParams, this->streamParams->iParams, SAMPLE_FORMAT, sampleRate,
-			this->streamParams->bufferFrames, &inout, (void *)this->bufferBytes, this->streamParams->options);
+			this->streamParams->bufferFrames, &processAudio, (void *)this->audioData, this->streamParams->options);
 	}
 	catch (RtAudioError& e) {
 		e.printMessage();

@@ -12,6 +12,7 @@ contiguous samples are 1/44100 seconds apart.*/
 #include "Scene.h"
 #include "Camera.h"
 #include "Source.h"
+#include "CircularBuffer.h"
 
 #include<random>
 #include<cmath>
@@ -45,11 +46,12 @@ typedef struct audioPaths{
 } audioPaths;
 
 typedef struct audioCallbackData {
+	unsigned int bufferFrames;
 	unsigned int pos;
 	/*A buffer to store old samples to use in posterior calculations.
 	To store 1 second of samples size should be: (sampleRate x num_channels x sample_num_bytes)*/
 	unsigned int samplesRecordBufferSize;
-	SAMPLE_TYPE * samplesRecordBuffer;
+	CircularBuffer<SAMPLE_TYPE> * samplesRecordBuffer;
 	audioPaths * paths;
 } audioCallbackData;
 

@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClInclude Include="AudioRenderer.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CircularBuffer.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="OBJLoader.h" />
     <ClInclude Include="pch.h" />

@@ -12,6 +12,7 @@ public:
 	Mesh * mesh;
 
 public:
+	Source() {};
 	Source(glm::vec3 position, float radius, std::string file_name);
 	glm::mat4x4 getModelMatrix();
 	void draw();
