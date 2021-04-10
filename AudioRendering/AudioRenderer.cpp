@@ -188,9 +188,9 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 	//}
 	//memcpy(outputBuffer, inputBuffer, renderData->bufferBytes);
 	CircularBuffer<SAMPLE_TYPE> * allBuffer = renderData->samplesRecordBuffer;
-	if (allBuffer->tail + 1 - renderData->bufferFrames < 0) {
+	if (allBuffer->tail < renderData->bufferFrames - 1) {
 		size_t carry_over = renderData->bufferFrames - (allBuffer->tail + 1);
-		memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[renderData->samplesRecordBufferSize - 1 - carry_over], carry_over*sizeof(SAMPLE_TYPE));
+		memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[renderData->samplesRecordBufferSize - carry_over], carry_over*sizeof(SAMPLE_TYPE));
 		memcpy(&((SAMPLE_TYPE*)outputBuffer)[carry_over], renderData->samplesRecordBuffer, (allBuffer->tail + 1) * sizeof(SAMPLE_TYPE));
 	}
 	else {
