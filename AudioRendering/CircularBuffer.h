@@ -19,10 +19,11 @@ public:
 	void insert(T * source, size_t size) {
 		//First check if insert has to be done in two steps
 		if (this->tail + size >= this->size) {
+			size_t a = sizeof(T);
 			size_t first_cpy_size = this->size - 1 - this->tail;
 			memcpy(&this->buffer[this->tail + 1], source, first_cpy_size*sizeof(T));
 			memcpy(this->buffer, &source[first_cpy_size], (size - first_cpy_size)*sizeof(T));
-			this->tail = size - first_cpy_size;
+			this->tail = size - first_cpy_size - 1;
 			this->head = (this->tail + 1) % this->size;
 			this->full = true;
 		}
@@ -39,6 +40,17 @@ public:
 				this->head = (new_tail + 1) % this->size;
 			}
 			this->tail = new_tail;
+		}
+	}
+	void copyElements(T * output, size_t size) {
+		if (this->tail < size - 1) {
+			size_t carry_over = (size - 1) - this->tail;
+			memcpy(output, &this->buffer[this->size - carry_over], carry_over * sizeof(T));
+			memcpy(&output[carry_over], this->buffer, (this->tail + 1) * sizeof(T));
+		}
+		else {
+			memcpy(output, &this->buffer[this->tail - (size - 1)], size * sizeof(T));
+			//Quizas deberia tener ambos valores: nframes y nbytes para no tener que calcular ninguno
 		}
 	}
 	T& operator[](size_t idx){

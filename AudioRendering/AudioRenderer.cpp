@@ -187,17 +187,23 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 	//	}
 	//}
 	//memcpy(outputBuffer, inputBuffer, renderData->bufferBytes);
-	CircularBuffer<SAMPLE_TYPE> * allBuffer = renderData->samplesRecordBuffer;
-	if (allBuffer->tail < renderData->bufferFrames - 1) {
-		size_t carry_over = renderData->bufferFrames - (allBuffer->tail + 1);
-		memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[renderData->samplesRecordBufferSize - carry_over], carry_over*sizeof(SAMPLE_TYPE));
-		memcpy(&((SAMPLE_TYPE*)outputBuffer)[carry_over], renderData->samplesRecordBuffer, (allBuffer->tail + 1) * sizeof(SAMPLE_TYPE));
-	}
-	else {
-		memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[allBuffer->tail - (renderData->bufferFrames-1)], renderData->bufferFrames * sizeof(SAMPLE_TYPE));
-		//Quizas deberia tener ambos valores: nframes y nbytes para no tener que calcular ninguno
-	}
+	//CircularBuffer<SAMPLE_TYPE> * allBuffer = renderData->samplesRecordBuffer;
+	//if (allBuffer->tail < renderData->bufferFrames - 1) {
+	//	size_t carry_over = renderData->bufferFrames - (allBuffer->tail + 1);
+	//	memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[renderData->samplesRecordBufferSize - carry_over], carry_over*sizeof(SAMPLE_TYPE));
+	//	memcpy(&((SAMPLE_TYPE*)outputBuffer)[carry_over], renderData->samplesRecordBuffer, (allBuffer->tail + 1) * sizeof(SAMPLE_TYPE));
+	//}
+	//else {
+	//	memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[allBuffer->tail - (renderData->bufferFrames-1)], renderData->bufferFrames * sizeof(SAMPLE_TYPE));
+	//	//Quizas deberia tener ambos valores: nframes y nbytes para no tener que calcular ninguno
+	//}
 	/*memcpy(outputBuffer, renderData->samplesRecordBuffer, renderData->bufferBytes);*/
+	renderData->samplesRecordBuffer->copyElements((SAMPLE_TYPE*)outputBuffer, renderData->bufferFrames);
+	/*for (size_t i = 0; i < renderData->bufferFrames; ++i) {
+		if (((SAMPLE_TYPE*)inputBuffer)[i] != ((SAMPLE_TYPE*)outputBuffer)[i]) {
+			std::cout << "me cabio" << std::endl;
+		}
+	}*/
 	return 0;
 }
 
