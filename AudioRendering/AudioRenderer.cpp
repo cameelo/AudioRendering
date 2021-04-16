@@ -178,32 +178,29 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 
 	//First we copy the new samples into our buffer
 	renderData->samplesRecordBuffer->insert((SAMPLE_TYPE*)inputBuffer, renderData->bufferFrames);
-	////Then we process the frames
+	//Then we process the frames
 	//renderData->paths->mutex->lock();
 	//for (int i = 0; i < renderData->paths->size; ++i) {
 	//	size_t iter = renderData->samplesRecordBuffer->head;
-	//	while (iter != renderData->samplesRecordBuffer->tail) {
+	//	while (iter <= renderData->samplesRecordBuffer->tail) {
 	//		//Calculate contribution to outputBuffer, energy and position.
+	//		//Note that we need to process n samples here. Where n is the number of channels
+	//		double propagation_time = renderData->paths->ptr[iter].travelled_distance / SPEED_OF_SOUND;
+	//		size_t time_of_listen = iter + round(propagation_time * SAMPLE_DELTA_T);
+	//		if (time_of_listen < renderData->samplesRecordBuffer->size &&
+	//			time_of_listen >= renderData->samplesRecordBuffer->size - renderData->bufferFrames) {
+	//			//Need to convert time_of_listen to output index
+	//			renderData->samplesRecordBuffer->addToOutput(index, renderData->paths->ptr[iter].remaining_energy_factor * renderData->samplesRecordBuffer->buffer[iter]);
+	//			renderData->samplesRecordBuffer->addToOutput(index+1, renderData->paths->ptr[iter].remaining_energy_factor * renderData->samplesRecordBuffer->buffer[iter+1]);
+	//		}
 	//	}
 	//}
-	//memcpy(outputBuffer, inputBuffer, renderData->bufferBytes);
-	//CircularBuffer<SAMPLE_TYPE> * allBuffer = renderData->samplesRecordBuffer;
-	//if (allBuffer->tail < renderData->bufferFrames - 1) {
-	//	size_t carry_over = renderData->bufferFrames - (allBuffer->tail + 1);
-	//	memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[renderData->samplesRecordBufferSize - carry_over], carry_over*sizeof(SAMPLE_TYPE));
-	//	memcpy(&((SAMPLE_TYPE*)outputBuffer)[carry_over], renderData->samplesRecordBuffer, (allBuffer->tail + 1) * sizeof(SAMPLE_TYPE));
-	//}
-	//else {
-	//	memcpy(outputBuffer, &renderData->samplesRecordBuffer->buffer[allBuffer->tail - (renderData->bufferFrames-1)], renderData->bufferFrames * sizeof(SAMPLE_TYPE));
-	//	//Quizas deberia tener ambos valores: nframes y nbytes para no tener que calcular ninguno
-	//}
-	/*memcpy(outputBuffer, renderData->samplesRecordBuffer, renderData->bufferBytes);*/
 	renderData->samplesRecordBuffer->copyElements((SAMPLE_TYPE*)outputBuffer, renderData->bufferFrames);
-	/*for (size_t i = 0; i < renderData->bufferFrames; ++i) {
+	for (size_t i = 0; i < renderData->bufferFrames; ++i) {
 		if (((SAMPLE_TYPE*)inputBuffer)[i] != ((SAMPLE_TYPE*)outputBuffer)[i]) {
 			std::cout << "me cabio" << std::endl;
 		}
-	}*/
+	}
 	return 0;
 }
 
@@ -250,7 +247,7 @@ AudioRenderer::AudioRenderer() {
 	//Total frames in a buffer for all channels
 	this->audioData->bufferFrames = bufferFrames * num_channles;
 	this->audioData->pos = 0;
-	//1 second's worth of samples. This size is in bytes.
+	//1 second's worth of samples.
 	this->audioData->samplesRecordBufferSize = sampleRate * num_channles;
 	this->audioData->samplesRecordBuffer = new CircularBuffer<SAMPLE_TYPE>(this->audioData->samplesRecordBufferSize);
 	this->audioData->paths = new audioPaths();

@@ -23,6 +23,8 @@ contiguous samples are 1/44100 seconds apart.*/
 #define NUMBER_OF_RAYS 10000
 //Speed of sound in the air at 20 °C in m/s
 #define SPEED_OF_SOUND 343
+//Time that an audio sample takes in seconds
+#define SAMPLE_DELTA_T 1 / 44100
 #define SAMPLE_FORMAT RTAUDIO_SINT16
 
 typedef signed short SAMPLE_TYPE;

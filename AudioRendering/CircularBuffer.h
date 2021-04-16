@@ -30,16 +30,19 @@ public:
 		else { 
 			if (tail == head) {
 				memcpy(&this->buffer[this->tail], source, size * sizeof(T));
+				this->tail = this->tail + size - 1;
 			}
 			else {
 				memcpy(&this->buffer[this->tail + 1], source, size * sizeof(T));
+				this->tail = this->tail + size;
 			}
-			size_t new_tail = this->tail + size - 1;
 			//If buffer was full we need to move the head
 			if (this->full) {
-				this->head = (new_tail + 1) % this->size;
+				this->head = (this->tail + 1) % this->size;
 			}
-			this->tail = new_tail;
+			if (this->tail == this->size - 1) {
+				full = true;
+			}
 		}
 	}
 	void copyElements(T * output, size_t size) {
