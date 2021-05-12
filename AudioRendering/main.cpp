@@ -180,6 +180,7 @@ int main(int argc, char* argv[]) {
 	AudioRenderer audio = AudioRenderer();
 	Camera cam = Camera(WIDTH, HEIGHT, 45, window);
 	Source * source = new Source(glm::vec3(0, 5, -10), 2, "models/sphere.obj");
+	audio.render(scene, &cam, source);
 	ShaderProgram* pass = new ShaderProgram("assets/shaders/pass.vert", "assets/shaders/pass.frag");
 	bool exit = false;
 
@@ -235,8 +236,6 @@ int main(int argc, char* argv[]) {
 		glUniform4fv(colorID, 1, &(glm::vec4(1,0,0,1)[0]));
 		source->draw();
 		pass->unbind();
-
-		audio.render(scene, &cam, source);
 
 		double dif = frameTime - ((clock() - start) * (1000.0 / double(CLOCKS_PER_SEC)));
 		if (dif > 0) {

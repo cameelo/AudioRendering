@@ -175,44 +175,18 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 	if (status) std::cout << "Stream over/underflow detected." << std::endl;
 
 	audioCallbackData *renderData = (audioCallbackData *)data;
-
+	memset(outputBuffer, 0, renderData->bufferFrames);
 	//First we copy the new samples into our buffer
 	renderData->samplesRecordBuffer->insert((SAMPLE_TYPE*)inputBuffer, renderData->bufferFrames);
 	//Then we process the frames
-	//renderData->paths->mutex->lock();
-	//for (int i = 0; i < renderData->paths->size; ++i) {
-	//	size_t iter = renderData->samplesRecordBuffer->head;
-	//	while (iter <= renderData->samplesRecordBuffer->tail) {
-	//		//Calculate contribution to outputBuffer, energy and position.
-	//		//Note that we need to process n samples here. Where n is the number of channels
-	//		double propagation_time = renderData->paths->ptr[iter].travelled_distance / SPEED_OF_SOUND;
-	//		size_t time_of_listen = iter + round(propagation_time * SAMPLE_DELTA_T);
-	//		if (time_of_listen < renderData->samplesRecordBuffer->size &&
-	//			time_of_listen >= renderData->samplesRecordBuffer->size - renderData->bufferFrames) {
-	//			//Need to convert time_of_listen to output index
-	//			renderData->samplesRecordBuffer->addToOutput(index, renderData->paths->ptr[iter].remaining_energy_factor * renderData->samplesRecordBuffer->buffer[iter]);
-	//			renderData->samplesRecordBuffer->addToOutput(index+1, renderData->paths->ptr[iter].remaining_energy_factor * renderData->samplesRecordBuffer->buffer[iter+1]);
-	//		}
-	//	}
-	//}
-	renderData->samplesRecordBuffer->copyElements((SAMPLE_TYPE*)outputBuffer, renderData->bufferFrames);
-	for (size_t i = 0; i < renderData->bufferFrames; ++i) {
-		if (((SAMPLE_TYPE*)inputBuffer)[i] != ((SAMPLE_TYPE*)outputBuffer)[i]) {
-			std::cout << "me cabio" << std::endl;
+	for (int i = 0; i < renderData->bufferFrames; i++) {
+		SAMPLE_TYPE output_value = 0;
+		//We calculate the row column product for rho's rows from the bottom-up
+		for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) { //This iterates through rs  
+			output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize-1 - i - j);
 		}
+		((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames-1 - i] = output_value;
 	}
-	return 0;
-}
-
-int inout(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
-	double streamTime, RtAudioStreamStatus status, void *data)
-{
-	// Since the number of input and output channels is equal, we can do
-	// a simple buffer copy operation here.
-	if (status) std::cout << "Stream over/underflow detected." << std::endl;
-
-	unsigned long *bytes = (unsigned long *)data;
-	memcpy(outputBuffer, inputBuffer, *bytes);
 	return 0;
 }
 
@@ -225,7 +199,7 @@ AudioRenderer::AudioRenderer() {
 		exit(0);
 	}
 
-	unsigned int bufferBytes, bufferFrames = 512, sampleRate = 44100, num_channles = 2;
+	unsigned int bufferBytes, bufferFrames = 512, sampleRate = 44100, num_channles = 1;
 
 	//Set up stream parameters they need to be in heap since audio api will use them in separate thread
 	this->streamParams = new streamParameters();
@@ -280,23 +254,21 @@ AudioRenderer::AudioRenderer() {
 
 void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 	OmnidirectionalUniformSphereRayCast(scene, camera, source, this->currentPaths);
+	//Create Rs vector from current paths
 
-	////Update audio paths with paths found in this frame
-	this->audioData->paths->mutex->lock();
-	if (this->currentPaths->size > 0) {
- 		this->audioData->paths->ptr = (audioPath*)realloc(this->audioData->paths->ptr, this->currentPaths->size * sizeof(audioPath));
-		this->audioData->paths->size = this->currentPaths->size;
-		memcpy(this->audioData->paths->ptr, this->currentPaths->ptr, this->currentPaths->size * sizeof(audioPath));
-		free(this->currentPaths->ptr);
-		this->currentPaths->ptr = NULL;
-		this->currentPaths->size = 0;
+	this->audioData->Rs = new std::vector<SAMPLE_TYPE>(this->audioData->samplesRecordBufferSize, 0.0);
+	//Paths store the distance, to get the corresponding cell in vector Rs we need to find the elapsed time
+	for (int i = 0; i < this->currentPaths->size; i++) {
+		float distance = this->currentPaths->ptr->travelled_distance;
+		float remaining_factor = this->currentPaths->ptr->remaining_energy_factor;
+		float elapsed_time = distance / SPEED_OF_SOUND;
+		//The elapsed time is then converted to a position in the array by multiplying the time by the samples per second
+		//This way a path that takes 1s to reach the listener will ocuppy the last position in the array.
+		unsigned int array_pos = round(elapsed_time * SAMPLE_RATE);
+		if (array_pos < this->audioData->samplesRecordBufferSize && array_pos >= 0) {
+			(*this->audioData->Rs)[array_pos] += remaining_factor;
+		}
 	}
-	else {
-		free(this->audioData->paths->ptr);
-		this->audioData->paths->ptr = NULL;
-		this->audioData->paths->size = 0;
-	}
-	this->audioData->paths->mutex->unlock();
 }
 
 AudioRenderer::~AudioRenderer() {
