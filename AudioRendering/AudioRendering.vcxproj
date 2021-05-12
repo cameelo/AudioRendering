@@ -165,6 +165,7 @@
     <ClInclude Include="rtaudio-5.1.0\RtAudio.h" />
     <ClInclude Include="rtaudio-5.1.0\rtaudio_c.h" />
     <ClInclude Include="rtaudio-5.1.0\soundcard.h" />
+    <ClInclude Include="SampleBuffer.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SceneObject.h" />
     <ClInclude Include="ShaderProgram.h" />

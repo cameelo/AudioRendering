@@ -11,6 +11,7 @@ public:
 public:
 	CircularBuffer(size_t size) {
 		this->buffer = new T[size]; //size no debe estar en bytes sino en la cantidad de elementos de tipo T del buffer
+		memset(this->buffer, 0, sizeof(this->buffer));
 		this->size = size;
 		this->head = 0;
 		this->tail = 0;
@@ -45,6 +46,29 @@ public:
 			}
 		}
 	}
+	//get the position of the element in absolute array index. Begginig at 1 - buffer[0] is the first element.
+	size_t getElementPos(size_t iter) {
+		size_t ret = 0;
+		if (head > iter) {
+			ret = iter + 1 + (this->size - this->head);
+		}
+		else {
+			ret = iter + 1 - this->head;
+		}
+		return ret;
+	}
+
+	//get the element with absolute position pos
+	T getElement(size_t pos) {
+		if (head + pos < size - 1) {
+			return buffer[head + pos];
+		}
+		else {
+			size_t remainder = pos - (size - head);
+			return buffer[remainder];
+		}
+	}
+
 	void copyElements(T * output, size_t size) {
 		if (this->tail < size - 1) {
 			size_t carry_over = (size - 1) - this->tail;
@@ -56,10 +80,43 @@ public:
 			//Quizas deberia tener ambos valores: nframes y nbytes para no tener que calcular ninguno
 		}
 	}
+	//void addToOutput(T * output, size_t sampleIdx, double propagationTime, float remainingEnergyFactor) {
+	//	if (time_of_listen < renderData->samplesRecordBuffer->size &&
+	//		time_of_listen >= renderData->samplesRecordBuffer->size - renderData->bufferFrames) {
+	//		//Need to convert time_of_listen to output index
+	//		renderData->samplesRecordBuffer->addToOutput(index, renderData->paths->ptr[i].remaining_energy_factor * renderData->samplesRecordBuffer->buffer[iter]);
+	//		renderData->samplesRecordBuffer->addToOutput(index + 1, renderData->paths->ptr[i].remaining_energy_factor * renderData->samplesRecordBuffer->buffer[iter + 1]);
+	//	}
+	//}
 	T& operator[](size_t idx){
 		return this->buffer[idx];
 	}
 	~CircularBuffer() {
 		delete[](this->buffer);
+	}
+};
+
+template <class T>
+class SampleIterator {
+public:
+	CircularBuffer<T> * cb;
+	int numChannels;
+	size_t idx;
+	bool finished;
+public:
+	SampleIterator(CircularBuffer<T> * cb, int numChannels) {
+		this->cb = cb;
+		this->numChannels = numChannels;
+		this->idx = cb->head;
+		this->finished = false;
+	}
+	void next() {
+		this->idx = (idx + numChannels) % cb->size;
+		if (idx == cb->tail-(numChannels-1)) { //in case of 2 channels the second to last sample is the first of the last pair 
+			this->finished = true;
+		}
+	}
+	bool isEnd() {
+		return this->finished;
 	}
 };

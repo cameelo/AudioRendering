@@ -24,7 +24,8 @@ contiguous samples are 1/44100 seconds apart.*/
 //Speed of sound in the air at 20 °C in m/s
 #define SPEED_OF_SOUND 343
 //Time that an audio sample takes in seconds
-#define SAMPLE_DELTA_T 1 / 44100
+#define SAMPLE_RATE 44100
+#define SAMPLE_DELTA_T 1 / SAMPLE_RATE
 #define SAMPLE_FORMAT RTAUDIO_SINT16
 
 typedef signed short SAMPLE_TYPE;
@@ -51,10 +52,11 @@ typedef struct audioCallbackData {
 	unsigned int bufferFrames;
 	unsigned int pos;
 	/*A buffer to store old samples to use in posterior calculations.
-	To store 1 second of samples size should be: (sampleRate x num_channels x sample_num_bytes)*/
+	To store 1 second of samples size should be: n = sampleRate, to store 2 seconds n = sampleRate x 2*/
 	unsigned int samplesRecordBufferSize;
 	CircularBuffer<SAMPLE_TYPE> * samplesRecordBuffer;
 	audioPaths * paths;
+	std::vector<SAMPLE_TYPE> * Rs;
 } audioCallbackData;
 
 typedef struct streamParameters {
