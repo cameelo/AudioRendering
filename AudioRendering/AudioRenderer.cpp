@@ -1,5 +1,8 @@
 #include "AudioRenderer.h"
 #include <mutex>
+#include <numeric>
+#include <algorithm>
+#include <execution>
 
 //Returns the distance to the intersection if there is one, -1 if not.
 float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, float radius) {
@@ -168,6 +171,18 @@ void viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
 	castRay(scene->getRTCScene(), camera->pos, camera->ref - camera->pos, source->pos, new_ray_history, NULL);
 }
 
+struct OutBuffer {
+	void operator()(int i) {
+		SAMPLE_TYPE output_value = 0;
+		for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) {
+			output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
+		}
+		((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames - 1 - i] = output_value;
+	}
+	SAMPLE_TYPE * outputBuffer;
+	audioCallbackData * renderData;
+};
+
 //Callback that processes audio frames
 int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 	double streamTime, RtAudioStreamStatus status, void *data)
@@ -175,17 +190,25 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 	if (status) std::cout << "Stream over/underflow detected." << std::endl;
 
 	audioCallbackData *renderData = (audioCallbackData *)data;
-	memset(outputBuffer, 0, renderData->bufferFrames);
+	memset(outputBuffer, 0, renderData->bufferFrames * sizeof(SAMPLE_TYPE));
 	//First we copy the new samples into our buffer
 	renderData->samplesRecordBuffer->insert((SAMPLE_TYPE*)inputBuffer, renderData->bufferFrames);
-	//Then we process the frames
-	for (int i = 0; i < renderData->bufferFrames; i++) {
-		SAMPLE_TYPE output_value = 0;
-		//We calculate the row column product for rho's rows from the bottom-up
-		for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) { //This iterates through rs  
-			output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize-1 - i - j);
-		}
-		((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames-1 - i] = output_value;
+	if (renderData->samplesRecordBuffer->full) {
+		//Then we process the frames
+		OutBuffer o;
+		o.outputBuffer = (SAMPLE_TYPE*)outputBuffer;
+		o.renderData = renderData;
+		std::vector<int> v(512); // vector with 100 ints.
+		std::iota(std::begin(v), std::end(v), 0); // Fill with 0, 1, ..., 99.
+		std::for_each(std::execution::par, v.begin(), v.end(), o);
+		//for (int i = 0; i < renderData->bufferFrames; i++) {
+		//	SAMPLE_TYPE output_value = 0;
+		//	//We calculate the row column product for rho's rows from the bottom-up
+		//	for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) {
+		//		output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
+		//	}
+		//	((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames - 1 - i] = output_value;
+		//}
 	}
 	return 0;
 }
@@ -266,7 +289,7 @@ void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 		//This way a path that takes 1s to reach the listener will ocuppy the last position in the array.
 		unsigned int array_pos = round(elapsed_time * SAMPLE_RATE);
 		if (array_pos < this->audioData->samplesRecordBufferSize && array_pos >= 0) {
-			(*this->audioData->Rs)[array_pos] += remaining_factor;
+			(*this->audioData->Rs)[array_pos] = 1;
 		}
 	}
 }
