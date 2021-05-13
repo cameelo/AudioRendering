@@ -90,6 +90,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\admin\Documents\FING\ProyectoGrado\AudioRendering\libs\RtAudio\include;$(SolutionDir)\libs\SDL2-2.0.14\include;$(SolutionDir)\libs\glm;$(SolutionDir)\libs\glew-2.1.0\include;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\RtAudio\lib;$(SolutionDir)\libs\glew-2.1.0\lib\Release\x64;$(SolutionDir)\libs\SDL2-2.0.14\lib\x64;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -123,6 +124,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\admin\Documents\FING\ProyectoGrado\AudioRendering\libs\RtAudio\include;$(SolutionDir)\libs\SDL2-2.0.14\include;$(SolutionDir)\libs\glm;$(SolutionDir)\libs\glew-2.1.0\include;$(SolutionDir)\libs\embree-3.12.1.x64.vc14.windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

@@ -11,7 +11,7 @@ public:
 public:
 	CircularBuffer(size_t size) {
 		this->buffer = new T[size]; //size no debe estar en bytes sino en la cantidad de elementos de tipo T del buffer
-		memset(this->buffer, 0, sizeof(this->buffer));
+		memset(this->buffer, 0, size*sizeof(T));
 		this->size = size;
 		this->head = 0;
 		this->tail = 0;
@@ -60,7 +60,7 @@ public:
 
 	//get the element with absolute position pos
 	T getElement(size_t pos) {
-		if (head + pos < size - 1) {
+		if (head + pos < size) {
 			return buffer[head + pos];
 		}
 		else {
