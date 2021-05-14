@@ -1,9 +1,6 @@
 #include "AudioRenderer.h"
 #include <mutex>
-#include <numeric>
-#include <algorithm>
-#include <execution>
-
+#include <thread>
 //Returns the distance to the intersection if there is one, -1 if not.
 float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, float radius) {
 	//The following is obtained from solving the ecuation system given by the ray and sphere
@@ -171,17 +168,31 @@ void viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
 	castRay(scene->getRTCScene(), camera->pos, camera->ref - camera->pos, source->pos, new_ray_history, NULL);
 }
 
-struct OutBuffer {
-	void operator()(int i) {
+//struct OutBuffer {
+//	void operator()(int i) {
+//		SAMPLE_TYPE output_value = 0;
+//		for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) {
+//			output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
+//		}
+//		((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames - 1 - i] = output_value;
+//	}
+//	SAMPLE_TYPE * outputBuffer;
+//	audioCallbackData * renderData;
+//};
+
+std::mutex outputBufferMutex;
+
+void rowColumnProduct(int begin, int end, void * outputBuffer, audioCallbackData * renderData) {
+	for (int i = begin; i <= end; i++) {
 		SAMPLE_TYPE output_value = 0;
 		for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) {
 			output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
 		}
+		outputBufferMutex.lock();
 		((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames - 1 - i] = output_value;
+		outputBufferMutex.unlock();
 	}
-	SAMPLE_TYPE * outputBuffer;
-	audioCallbackData * renderData;
-};
+}
 
 //Callback that processes audio frames
 int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
@@ -195,21 +206,35 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 	renderData->samplesRecordBuffer->insert((SAMPLE_TYPE*)inputBuffer, renderData->bufferFrames);
 	if (renderData->samplesRecordBuffer->full) {
 		//Then we process the frames
-		OutBuffer o;
-		o.outputBuffer = (SAMPLE_TYPE*)outputBuffer;
-		o.renderData = renderData;
-		std::vector<int> v(512); // vector with 100 ints.
-		std::iota(std::begin(v), std::end(v), 0); // Fill with 0, 1, ..., 99.
-		std::for_each(std::execution::par, v.begin(), v.end(), o);
-		//for (int i = 0; i < renderData->bufferFrames; i++) {
-		//	SAMPLE_TYPE output_value = 0;
-		//	//We calculate the row column product for rho's rows from the bottom-up
-		//	for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) {
-		//		output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
-		//	}
-		//	((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames - 1 - i] = output_value;
-		//}
+		/*int frames_per_thread = round(renderData->bufferFrames / 4);
+		renderData->pool->push_task(rowColumnProduct, 0, frames_per_thread - 1, outputBuffer, renderData);
+		renderData->pool->push_task(rowColumnProduct, frames_per_thread, frames_per_thread * 2 - 1, outputBuffer, renderData);
+		renderData->pool->push_task(rowColumnProduct, frames_per_thread * 2, frames_per_thread * 3 - 1, outputBuffer, renderData);
+		renderData->pool->push_task(rowColumnProduct, frames_per_thread * 3, renderData->bufferFrames - 1, outputBuffer, renderData);
+		
+		renderData->pool->wait_for_tasks();*/
+
+		for (int i = 0; i < renderData->bufferFrames; i++) {
+			SAMPLE_TYPE output_value = 0;
+			for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) {
+				output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
+			}
+			outputBufferMutex.lock();
+			((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames - 1 - i] = output_value;
+			outputBufferMutex.unlock();
+		}
 	}
+	return 0;
+}
+
+int inout(void *outputBuffer, void *inputBuffer, unsigned int /*nBufferFrames*/,
+	double /*streamTime*/, RtAudioStreamStatus status, void *data)
+{
+	// Since the number of input and output channels is equal, we can do
+	// a simple buffer copy operation here.
+	if (status) std::cout << "Stream over/underflow detected." << std::endl;
+
+	memcpy(outputBuffer, inputBuffer, 512);
 	return 0;
 }
 
@@ -222,7 +247,7 @@ AudioRenderer::AudioRenderer() {
 		exit(0);
 	}
 
-	unsigned int bufferBytes, bufferFrames = 512, sampleRate = 44100, num_channles = 1;
+	unsigned int bufferBytes, bufferFrames = 512, sampleRate = SAMPLE_RATE, num_channles = 1;
 
 	//Set up stream parameters they need to be in heap since audio api will use them in separate thread
 	this->streamParams = new streamParameters();
@@ -251,6 +276,7 @@ AudioRenderer::AudioRenderer() {
 	this->audioData->paths->ptr = NULL;
 	this->audioData->paths->size = 0;
 	this->audioData->paths->mutex = new std::mutex();
+	//this->audioData->pool = new thread_pool(4);
 
 	try {
 		this->audioApi->openStream(this->streamParams->oParams, this->streamParams->iParams, SAMPLE_FORMAT, sampleRate,

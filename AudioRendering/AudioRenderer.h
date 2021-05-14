@@ -13,6 +13,7 @@ contiguous samples are 1/44100 seconds apart.*/
 #include "Camera.h"
 #include "Source.h"
 #include "CircularBuffer.h"
+//#include "thread_pool.hpp"
 
 #include<random>
 #include<cmath>
@@ -24,7 +25,7 @@ contiguous samples are 1/44100 seconds apart.*/
 //Speed of sound in the air at 20 °C in m/s
 #define SPEED_OF_SOUND 343
 //Time that an audio sample takes in seconds
-#define SAMPLE_RATE 44100
+#define SAMPLE_RATE 16000
 #define SAMPLE_DELTA_T 1 / SAMPLE_RATE
 #define SAMPLE_FORMAT RTAUDIO_SINT16
 
@@ -57,6 +58,7 @@ typedef struct audioCallbackData {
 	CircularBuffer<SAMPLE_TYPE> * samplesRecordBuffer;
 	audioPaths * paths;
 	std::vector<SAMPLE_TYPE> * Rs;
+	//thread_pool * pool;
 } audioCallbackData;
 
 typedef struct streamParameters {

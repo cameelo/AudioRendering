@@ -172,6 +172,7 @@
     <ClInclude Include="SceneObject.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="Source.h" />
+    <ClInclude Include="thread_pool.hpp" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
