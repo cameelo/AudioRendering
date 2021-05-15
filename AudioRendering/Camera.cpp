@@ -13,7 +13,7 @@
 
 Camera::Camera(float width, float height, float fov, SDL_Window* win) {
 	this->pos = glm::vec3(0, 5, 5);
-	this->ref = glm::vec3(0, 0, 0);
+	this->ref = glm::vec3(0, 0, -1);
 	this->up = glm::vec3(0, 1, 0);
 	this->fov = fov;
 	this->moveSpeed = 50.0f;

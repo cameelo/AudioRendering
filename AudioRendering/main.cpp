@@ -207,6 +207,12 @@ int main(int argc, char* argv[]) {
 					cam.moveCam();
 					break;
 				}
+				else if (event.key.keysym.sym == SDLK_e) {
+					source->pos = cam.pos;
+				}
+				else if (event.key.keysym.sym == SDLK_r) {
+					audio.render(scene, &cam, source);
+				}
 			}
 							  break;
 			case SDL_MOUSEBUTTONDOWN: {
