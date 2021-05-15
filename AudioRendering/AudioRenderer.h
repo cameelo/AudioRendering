@@ -21,15 +21,18 @@ contiguous samples are 1/44100 seconds apart.*/
 #include <mutex>
 
 #define LISTENER_SPHERE_RADIUS 2.0f
-#define NUMBER_OF_RAYS 10000
+#define NUMBER_OF_RAYS 1000000
+#define SOURCE_POWER 100000.0f
 //Speed of sound in the air at 20 °C in m/s
 #define SPEED_OF_SOUND 343
 //Time that an audio sample takes in seconds
 #define SAMPLE_RATE 16000
 #define SAMPLE_DELTA_T 1 / SAMPLE_RATE
-#define SAMPLE_FORMAT RTAUDIO_SINT16
+//#define SAMPLE_FORMAT RTAUDIO_SINT16
+#define SAMPLE_FORMAT RTAUDIO_FLOAT32
 
-typedef signed short SAMPLE_TYPE;
+//typedef signed short SAMPLE_TYPE;
+typedef float SAMPLE_TYPE;
 
 typedef struct rayHistory{
 	float travelled_distance;
@@ -57,7 +60,9 @@ typedef struct audioCallbackData {
 	unsigned int samplesRecordBufferSize;
 	CircularBuffer<SAMPLE_TYPE> * samplesRecordBuffer;
 	audioPaths * paths;
-	std::vector<SAMPLE_TYPE> * Rs;
+	/*Rs's type needs to be compatible with SAMPLE_TYPE.
+	If Rs's values go from 0 to 1, then the SAMPLE_TYPE should allow decimal values*/
+	std::vector<float> * Rs;
 	//thread_pool * pool;
 } audioCallbackData;
 
