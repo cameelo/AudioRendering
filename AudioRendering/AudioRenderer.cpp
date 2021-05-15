@@ -1,6 +1,9 @@
 #include "AudioRenderer.h"
 #include <mutex>
 #include <thread>
+#include <fstream>
+#include <iomanip>
+
 //Returns the distance to the intersection if there is one, -1 if not.
 float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, float radius) {
 	//The following is obtained from solving the ecuation system given by the ray and sphere
@@ -308,8 +311,8 @@ void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 	this->audioData->Rs = new std::vector<SAMPLE_TYPE>(this->audioData->samplesRecordBufferSize, 0.0);
 	//Paths store the distance, to get the corresponding cell in vector Rs we need to find the elapsed time
 	for (int i = 0; i < this->currentPaths->size; i++) {
-		float distance = this->currentPaths->ptr->travelled_distance;
-		float remaining_factor = this->currentPaths->ptr->remaining_energy_factor;
+		float distance = this->currentPaths->ptr[i].travelled_distance;
+		float remaining_factor = this->currentPaths->ptr[i].remaining_energy_factor;
 		float elapsed_time = distance / SPEED_OF_SOUND;
 		//The elapsed time is then converted to a position in the array by multiplying the time by the samples per second
 		//This way a path that takes 1s to reach the listener will ocuppy the last position in the array.
@@ -318,6 +321,12 @@ void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 			(*this->audioData->Rs)[array_pos] = 1;
 		}
 	}
+	std::ofstream rs_file("rs.txt");
+	rs_file << std::setprecision(2);
+	for (int i = 0; i < this->audioData->samplesRecordBufferSize; i++) {
+		rs_file << (*this->audioData->Rs)[i] << std::endl;
+	}
+	rs_file.close();
 }
 
 AudioRenderer::~AudioRenderer() {
