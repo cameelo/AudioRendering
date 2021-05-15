@@ -103,7 +103,7 @@ void castRay(RTCScene scene,
 		glm::vec3 new_origin = origin + dir * rayhit.ray.tfar;
 		//When casting new ray new origin must me moved delta in the new direction to avoid numeric errors. (Ray begining inside the geometry)
 		history.reflection_num++;
-		history.remaining_energy_factor*0.5;
+		history.remaining_energy_factor *= 0.5;
 		history.travelled_distance += rayhit.ray.tfar;
 		castRay(scene, new_origin + new_dir * 0.01f, new_dir, listener_pos, history, paths);
 
@@ -135,6 +135,12 @@ void OmnidirectionalUniformSphereRayCast(Scene * scene,
 	Source * source, 
 	audioPaths * paths)
 {
+	//If we are rendering audio again then we celar previously found paths
+	if (paths->ptr) {
+		free(paths->ptr);
+		paths->ptr = NULL;
+		paths->size = 0;
+	}
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::mt19937 generator(seed);
 	std::uniform_real_distribution<double> uniform01(0.0, 1.0);
@@ -146,7 +152,7 @@ void OmnidirectionalUniformSphereRayCast(Scene * scene,
 		double dy = sin(phi) * sin(theta);
 		double dz = cos(phi);
 		glm::vec3 dir = glm::normalize(glm::vec3(dx, dy, dz));
-		rayHistory new_ray_history = { 0.0f, 1.0f, 0 };
+		rayHistory new_ray_history = { 0.0f, SOURCE_POWER/NUMBER_OF_RAYS, 0 };
 		castRay(scene->getRTCScene(), source->pos, dir, camera->pos, new_ray_history, paths);
 	}
 
@@ -171,31 +177,19 @@ void viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
 	castRay(scene->getRTCScene(), camera->pos, camera->ref - camera->pos, source->pos, new_ray_history, NULL);
 }
 
-//struct OutBuffer {
-//	void operator()(int i) {
+std::mutex outputBufferMutex;
+
+//void rowColumnProduct(int begin, int end, void * outputBuffer, audioCallbackData * renderData) {
+//	for (int i = begin; i <= end; i++) {
 //		SAMPLE_TYPE output_value = 0;
 //		for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) {
 //			output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
 //		}
+//		outputBufferMutex.lock();
 //		((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames - 1 - i] = output_value;
+//		outputBufferMutex.unlock();
 //	}
-//	SAMPLE_TYPE * outputBuffer;
-//	audioCallbackData * renderData;
-//};
-
-std::mutex outputBufferMutex;
-
-void rowColumnProduct(int begin, int end, void * outputBuffer, audioCallbackData * renderData) {
-	for (int i = begin; i <= end; i++) {
-		SAMPLE_TYPE output_value = 0;
-		for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) {
-			output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
-		}
-		outputBufferMutex.lock();
-		((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames - 1 - i] = output_value;
-		outputBufferMutex.unlock();
-	}
-}
+//}
 
 //Callback that processes audio frames
 int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
@@ -223,7 +217,9 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 				output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
 			}
 			outputBufferMutex.lock();
-			((SAMPLE_TYPE*)outputBuffer)[renderData->bufferFrames - 1 - i] = output_value;
+			//Output has 2 channels
+			((SAMPLE_TYPE*)outputBuffer)[(renderData->bufferFrames * 2) - 1 - (i * 2)] = output_value;
+			((SAMPLE_TYPE*)outputBuffer)[(renderData->bufferFrames * 2) - 2 - (i * 2)] = output_value;
 			outputBufferMutex.unlock();
 		}
 	}
@@ -250,30 +246,30 @@ AudioRenderer::AudioRenderer() {
 		exit(0);
 	}
 
-	unsigned int bufferBytes, bufferFrames = 512, sampleRate = SAMPLE_RATE, num_channles = 1;
+	unsigned int bufferBytes, bufferFrames = 512, sampleRate = SAMPLE_RATE, input_channles = 1, output_channels = 2;
 
 	//Set up stream parameters they need to be in heap since audio api will use them in separate thread
 	this->streamParams = new streamParameters();
 	this->streamParams->iParams = new RtAudio::StreamParameters();
 	this->streamParams->iParams->deviceId = this->audioApi->getDefaultInputDevice();
-	this->streamParams->iParams->nChannels = num_channles;
+	this->streamParams->iParams->nChannels = input_channles;
 	this->streamParams->iParams->firstChannel = 0;
 	this->streamParams->oParams = new RtAudio::StreamParameters();
 	this->streamParams->oParams->deviceId = this->audioApi->getDefaultOutputDevice();
-	this->streamParams->oParams->nChannels = num_channles;
+	this->streamParams->oParams->nChannels = output_channels;
 	this->streamParams->oParams->firstChannel = 0;
 	this->streamParams->bufferFrames = new unsigned int(bufferFrames);
 	this->streamParams->options = new RtAudio::StreamOptions();
 
-	this->bufferBytes = new unsigned int(bufferFrames * num_channles * sizeof(SAMPLE_TYPE));
+	this->bufferBytes = new unsigned int(bufferFrames * input_channles * sizeof(SAMPLE_TYPE));
 
 	//This whole struct will be accessed from the audio api thread, so it needs to be in heap.
 	this->audioData = new audioCallbackData();
 	//Total frames in a buffer for all channels
-	this->audioData->bufferFrames = bufferFrames * num_channles;
+	this->audioData->bufferFrames = bufferFrames * input_channles;
 	this->audioData->pos = 0;
 	//1 second's worth of samples.
-	this->audioData->samplesRecordBufferSize = sampleRate * num_channles;
+	this->audioData->samplesRecordBufferSize = sampleRate * input_channles;
 	this->audioData->samplesRecordBuffer = new CircularBuffer<SAMPLE_TYPE>(this->audioData->samplesRecordBufferSize);
 	this->audioData->paths = new audioPaths();
 	this->audioData->paths->ptr = NULL;
@@ -302,13 +298,17 @@ AudioRenderer::AudioRenderer() {
 	this->currentPaths->ptr = NULL;
 	this->currentPaths->size = 0;
 	this->currentPaths->mutex = new std::mutex;
+
+	//Create Rs vector
+	this->audioData->Rs = new std::vector<float>(this->audioData->samplesRecordBufferSize);
 }
 
 void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 	OmnidirectionalUniformSphereRayCast(scene, camera, source, this->currentPaths);
-	//Create Rs vector from current paths
+	
+	//Initialize Rs
+	std::fill(this->audioData->Rs->begin(), this->audioData->Rs->end(), 0.0);
 
-	this->audioData->Rs = new std::vector<SAMPLE_TYPE>(this->audioData->samplesRecordBufferSize, 0.0);
 	//Paths store the distance, to get the corresponding cell in vector Rs we need to find the elapsed time
 	for (int i = 0; i < this->currentPaths->size; i++) {
 		float distance = this->currentPaths->ptr[i].travelled_distance;
@@ -318,7 +318,7 @@ void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 		//This way a path that takes 1s to reach the listener will ocuppy the last position in the array.
 		unsigned int array_pos = round(elapsed_time * SAMPLE_RATE);
 		if (array_pos < this->audioData->samplesRecordBufferSize && array_pos >= 0) {
-			(*this->audioData->Rs)[array_pos] = 1;
+			(*this->audioData->Rs)[array_pos] += remaining_factor;
 		}
 	}
 	std::ofstream rs_file("rs.txt");
