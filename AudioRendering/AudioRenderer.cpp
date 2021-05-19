@@ -98,7 +98,14 @@ void castRay(RTCScene scene,
 			return;
 		}
 		//Reflect ray with geometry normal
-		glm::vec3 new_dir = glm::reflect(dir, glm::vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
+		glm::vec3 new_dir;
+		glm::vec3 normal = glm::normalize(glm::vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
+		if (glm::dot(dir, normal) < 0) {
+			new_dir =  glm::reflect(dir, normal);
+		}
+		else {
+			new_dir = glm::reflect(dir, -normal);
+		}
 		//New origin is obtained by moving tfar in the ray direction from the current origin
 		glm::vec3 new_origin = origin + dir * rayhit.ray.tfar;
 		//When casting new ray new origin must me moved delta in the new direction to avoid numeric errors. (Ray begining inside the geometry)
@@ -211,6 +218,8 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 		
 		renderData->pool->wait_for_tasks();*/
 
+		unsigned int RvIndex;
+
 		for (int i = 0; i < renderData->bufferFrames; i++) {
 			SAMPLE_TYPE output_value = 0;
 			for (int j = 0; j < renderData->samplesRecordBufferSize - i; j++) {
@@ -218,10 +227,23 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 			}
 			outputBufferMutex.lock();
 			//Output has 2 channels
-			((SAMPLE_TYPE*)outputBuffer)[(renderData->bufferFrames * 2) - 1 - (i * 2)] = output_value;
-			((SAMPLE_TYPE*)outputBuffer)[(renderData->bufferFrames * 2) - 2 - (i * 2)] = output_value;
+			RvIndex = (renderData->bufferFrames * 2) - 1 - (i * 2);
+			((SAMPLE_TYPE*)outputBuffer)[RvIndex] = output_value;
+			((SAMPLE_TYPE*)outputBuffer)[RvIndex - 1] = output_value;
 			outputBufferMutex.unlock();
 		}
+
+		//For every element in Rs
+		//for (int i = 0; i < renderData->samplesRecordBufferSize; i++) {
+		//	//for each element in rho's column
+		//	for (int j = 0; j < renderData->bufferFrames && j < renderData->samplesRecordBufferSize - i; j++) {
+		//		float value = (*renderData->Rs)[i] * renderData->samplesRecordBuffer->getElement(renderData->samplesRecordBufferSize - 1 - i - j);
+		//		RvIndex = (renderData->bufferFrames * 2) - 1 - (j * 2);
+		//		((SAMPLE_TYPE*)outputBuffer)[RvIndex] += value;
+		//		((SAMPLE_TYPE*)outputBuffer)[RvIndex - 1] += value;
+		//	}
+		//	
+		//}
 	}
 	return 0;
 }
@@ -322,10 +344,13 @@ void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 		}
 	}
 	std::ofstream rs_file("rs.txt");
-	rs_file << std::setprecision(2);
+	rs_file << std::setprecision(7);
+	float received_energy = 0;
 	for (int i = 0; i < this->audioData->samplesRecordBufferSize; i++) {
-		rs_file << (*this->audioData->Rs)[i] << std::endl;
+		rs_file << (*this->audioData->Rs)[i] << ",";
+		received_energy += (*this->audioData->Rs)[i];
 	}
+	rs_file << std::endl << received_energy;
 	rs_file.close();
 }
 
