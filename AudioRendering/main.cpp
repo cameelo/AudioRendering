@@ -110,7 +110,7 @@ RTCDevice initializeDevice()
 Scene * initializeScene(RTCDevice device)
 {
 	Scene * new_scene = new Scene(device);
-	new_scene->addObjectFromOBJ("models/street.obj", glm::vec3(0.0f,0.0f,0.0f), 5.0f, &device);
+	new_scene->addObjectFromOBJ("models/triangle_cube_room.obj", glm::vec3(0.0f,0.0f,0.0f), 50.0f, &device);
 	//new_scene->addMeshFromObj("models/teapot.obj", device);
 	new_scene->commitScene();
 	return new_scene;
@@ -179,7 +179,7 @@ int main(int argc, char* argv[]) {
 
 	AudioRenderer audio = AudioRenderer();
 	Camera cam = Camera(WIDTH, HEIGHT, 45, window);
-	Source * source = new Source(glm::vec3(0, 5, -10), 2, "models/sphere.obj");
+	Source * source = new Source(glm::vec3(0, 0, 0), 2, "models/sphere.obj");
 	audio.render(scene, &cam, source);
 	ShaderProgram* pass = new ShaderProgram("assets/shaders/pass.vert", "assets/shaders/pass.frag");
 	bool exit = false;
