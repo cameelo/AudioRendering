@@ -19,6 +19,8 @@
 
 #include "Scene.h"
 #include "AudioRenderer.h"
+#include "AudioFileRenderer.h"
+#include "tinyxml2.h"
 
 #if defined(_WIN32)
 #  include <conio.h>
@@ -107,14 +109,14 @@ RTCDevice initializeDevice()
  *
  * Scenes, like devices, are reference-counted.
  */
-Scene * initializeScene(RTCDevice device)
-{
-	Scene * new_scene = new Scene(device);
-	new_scene->addObjectFromOBJ("models/triangle_cube_room.obj", glm::vec3(0.0f,0.0f,0.0f), 50.0f, &device);
-	//new_scene->addMeshFromObj("models/teapot.obj", device);
-	new_scene->commitScene();
-	return new_scene;
-}
+//Scene * initializeScene(RTCDevice device)
+//{
+//	Scene * new_scene = new Scene(device);
+//	new_scene->addObjectFromOBJ("models/street.obj", glm::vec3(0.0f,0.0f,0.0f), 10.0f, &device);
+//	//new_scene->addMeshFromObj("models/teapot.obj", device);
+//	new_scene->commitScene();
+//	return new_scene;
+//}
 
 void waitForKeyPressedUnderWindows()
 {
@@ -172,10 +174,13 @@ void close() {
 	SDL_Quit();
 }
 
-int main(int argc, char* argv[]) {
+void auralize() {
 	init();
 	RTCDevice device = initializeDevice();
-	Scene * scene = initializeScene(device);
+	AuralizationScene * scene = new AuralizationScene(device);
+	scene->addObjectFromOBJ("models/street.obj", glm::vec3(0.0f, 0.0f, 0.0f), 10.0f, &device);
+	//new_scene->addMeshFromObj("models/teapot.obj", device);
+	scene->commitScene();
 
 	AudioRenderer audio = AudioRenderer();
 	Camera cam = Camera(WIDTH, HEIGHT, 45, window);
@@ -258,6 +263,45 @@ int main(int argc, char* argv[]) {
 	waitForKeyPressedUnderWindows();
 
 	close();
-	return 0;
 }
 
+void getFileImpulseResponse(char* file_path) {
+	tinyxml2::XMLDocument scene_doc;
+	scene_doc.LoadFile(file_path);
+
+	const char* model_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MODEL")->GetText();
+	float scene_size = stof(scene_doc.FirstChildElement("SCENE")->FirstChildElement("SCENE_SIZE")->GetText());
+
+	glm::vec3 source_pos = glm::vec3(
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FloatAttribute("POS_X"),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FloatAttribute("POS_Y"),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FloatAttribute("POS_Z")
+	);
+
+	glm::vec3 listener_pos = glm::vec3(
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FloatAttribute("POS_X"),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FloatAttribute("POS_Y"),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FloatAttribute("POS_Z")
+	);
+
+	RTCDevice device = initializeDevice();
+	Scene * scene = new Scene(device);
+	scene->addObjectFromOBJ(model_file_path, glm::vec3(0.0f, 0.0f, 0.0f), scene_size, &device);
+	scene->commitScene();
+
+	const char* measurement_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MEASUREMENT")->GetText();
+
+	renderAudioFile(scene, listener_pos, source_pos, measurement_file_path);
+
+}
+
+int main(int argc, char* argv[]) {
+	if (argc >= 1) {
+		char* file_path = argv[0];
+		getFileImpulseResponse(file_path);
+	}
+	else {
+		auralize();
+	}
+	return 0;
+}
