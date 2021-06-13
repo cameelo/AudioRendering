@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<SCENE>
+<MODEL>models/1D_U.obj</MODEL>
+<SCENE_SIZE>1.0</SCENE_SIZE>
+<SOURCE>
+	<POS_X>0.0</POS_X>
+	<POS_Y>0.0</POS_Y>
+	<POS_Z>0.0</POS_Z>
+</SOURCE>
+<LISTENER>
+	<POS_X>-2.5</POS_X>
+	<POS_Y>0.0</POS_Y>
+	<POS_Z>9.9</POS_Z>
+</LISTENER>
+<MEASUREMENT>assets/measurements/1D_030_AllPass.wav</MEASUREMENT>
+</SCENE>
