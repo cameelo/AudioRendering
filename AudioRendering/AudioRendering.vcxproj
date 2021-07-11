@@ -150,6 +150,7 @@
     <ClCompile Include="tiny_obj_loader.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AudioFile.h" />
     <ClInclude Include="AudioFileRenderer.h" />
     <ClInclude Include="AudioRenderer.h" />
     <ClInclude Include="AudioRenderingUtils.h" />

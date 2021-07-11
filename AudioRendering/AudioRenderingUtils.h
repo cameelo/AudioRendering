@@ -39,25 +39,38 @@ typedef struct audioPaths {
 	std::mutex * mutex;
 } audioPaths;
 
+class RayTracer {
+public:
+	Scene * scene;
+	glm::vec3 listener_pos;
+	float listener_size;
+	glm::vec3 source_pos;
+	float source_power;
+	audioPaths * paths;
+public:
+	RayTracer(Scene * scene,
+		glm::vec3 listener_pos,
+		float listener_size,
+		glm::vec3 source_pos,
+		float source_power,
+		audioPaths * paths);
 
-//Returns the distance to the intersection if there is one, -1 if not.
-float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, float radius);
+	//Returns the distance to the intersection if there is one, -1 if not.
+	float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center);
 
-/*
- * Cast a single ray with origin (ox, oy, oz) and direction
- * (dx, dy, dz).
- */
- //This function needs to do the intersection with the sound source and the reflection of the ray if it collides with geometry
-void castRay(RTCScene scene,
-	glm::vec3 origin,
-	glm::vec3 dir,
-	glm::vec3 listener_pos,
-	rayHistory history,
-	audioPaths * paths);
+	/*
+	 * Cast a single ray with origin (ox, oy, oz) and direction
+	 * (dx, dy, dz).
+	 */
+	 //This function needs to do the intersection with the sound source and the reflection of the ray if it collides with geometry
+	void castRay(
+		glm::vec3 origin,
+		glm::vec3 dir,
+		rayHistory history);
 
-void OmnidirectionalUniformSphereRayCast(Scene * scene,
-	glm::vec3 listener_pos,
-	glm::vec3 source_pos,
-	audioPaths * paths);
+	void OmnidirectionalUniformSphereRayCast();
 
-void viewDirRayCast(Scene * scene, Camera * camera, Source * source);
+	void viewDirRayCast(Scene * scene, Camera * camera, Source * source);
+
+	~RayTracer();
+};

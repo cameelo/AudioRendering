@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <SCENE>
-<MODEL>models/1D_U.obj</MODEL>
+<MODEL>models/3D_U.obj</MODEL>
 <SIZE>1.0</SIZE>	<!-->Model's scale<!-->
 <SOURCE>
 	<POWER>100</POWER>	<!-->Sound level of the source: Lw<!-->
@@ -10,13 +10,13 @@
 	<POS_Z>0.0</POS_Z>
 </SOURCE>
 <LISTENER>
-	<SIZE>0.5</SIZE>	<!-->Radius of the sphere representing the listener<!-->
-	<POS_X>-2.5</POS_X>
+	<SIZE>0.5</SIZE>	<!-->Radius of the sphere representing the listener. Meters.<!-->
+	<POS_X>2.5</POS_X>
 	<POS_Y>0.0</POS_Y>
-	<POS_Z>9.9</POS_Z>
+	<POS_Z>9.90</POS_Z>
 </LISTENER>
 <MEASUREMENT>
-	<FILE>assets/measurements/1D_030_AllPass.wav</FILE>
+	<FILE>assets/measurements/3D_030_AllPass.wav</FILE>
 	<LENGTH>500</LENGTH>	<!-->Lenght to consider of the measurement. Milliseconds.<!-->
 </MEASUREMENT>
 </SCENE>
