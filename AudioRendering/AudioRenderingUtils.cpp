@@ -4,12 +4,26 @@
 #include<cmath>
 #include<chrono>
 
-float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, float radius) {
+RayTracer::RayTracer(Scene * scene,
+	glm::vec3 listener_pos,
+	float listener_size,
+	glm::vec3 source_pos,
+	float source_power,
+	audioPaths * paths) {
+	this->scene = scene;
+	this->listener_pos = listener_pos;
+	this->listener_size = listener_size;
+	this->source_pos = source_pos;
+	this->source_power = source_power;
+	this->paths = paths;
+}
+
+float RayTracer::raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center) {
 	//The following is obtained from solving the ecuation system given by the ray and sphere
 	//The result is a second degree ecuation: at^2 + bt + c = 0
 	float a = glm::dot(dir, dir);
 	float b = 2 * glm::dot(dir, origin - center);
-	float c = glm::dot(origin - center, origin - center) - pow(radius, 2);
+	float c = glm::dot(origin - center, origin - center) - pow(this->listener_size, 2);
 	float discriminant = (pow(b, 2) - 4 * a*c);
 	if (discriminant < 0) {
 		return -1;
@@ -29,12 +43,10 @@ float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center, f
  * (dx, dy, dz).
  */
  //This function needs to do the intersection with the sound source and the reflection of the ray if it collides with geometry
-void castRay(RTCScene scene,
+void RayTracer::castRay(
 	glm::vec3 origin,
 	glm::vec3 dir,
-	glm::vec3 listener_pos,
-	rayHistory history,
-	audioPaths * paths)
+	rayHistory history)
 {
 	/*
 	 * The intersect context can be used to set intersection
@@ -62,10 +74,10 @@ void castRay(RTCScene scene,
 	rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
 	rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
-	rtcIntersect1(scene, &context, &rayhit);
+	rtcIntersect1(this->scene->getRTCScene(), &context, &rayhit);
 
 	//Check if ray interescts listener
-	float distance_to_source = raySphereIntersection(origin, dir, listener_pos, LISTENER_SPHERE_RADIUS);
+	float distance_to_source = raySphereIntersection(origin, dir, listener_pos);
 	//Check if ray intersects room
 	if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
 	{
@@ -79,11 +91,11 @@ void castRay(RTCScene scene,
 				//printf("Found intersection with listener. %i\n", history.reflection_num);
 				//Add path to paths
 				audioPath newAudioPath = { history.travelled_distance + distance_to_source, history.remaining_energy_factor };
-				paths->mutex->lock();
-				paths->size++;
-				paths->ptr = (audioPath*)realloc(paths->ptr, paths->size * sizeof(audioPath));
-				paths->ptr[paths->size - 1] = newAudioPath;
-				paths->mutex->unlock();
+				this->paths->mutex->lock();
+				this->paths->size++;
+				this->paths->ptr = (audioPath*)realloc(paths->ptr, paths->size * sizeof(audioPath));
+				this->paths->ptr[paths->size - 1] = newAudioPath;
+				this->paths->mutex->unlock();
 				return;
 			}
 			else {
@@ -111,7 +123,7 @@ void castRay(RTCScene scene,
 		history.reflection_num++;
 		history.remaining_energy_factor *= 0.5;
 		history.travelled_distance += rayhit.ray.tfar;
-		castRay(scene, new_origin + new_dir * 0.01f, new_dir, listener_pos, history, paths);
+		castRay(new_origin + new_dir * 0.01f, new_dir, history);
 
 		/* Note how geomID and primID identify the geometry we just hit.
 		 * We could use them here to interpolate geometry information,
@@ -124,11 +136,11 @@ void castRay(RTCScene scene,
 			//Return parameters and traveled distance to add to the histogram
 			//printf("Found intersection with listener. %i\n", history.reflection_num);
 			audioPath newAudioPath = { history.travelled_distance + distance_to_source, history.remaining_energy_factor };
-			paths->mutex->lock();
-			paths->size++;
-			paths->ptr = (audioPath*)realloc(paths->ptr, paths->size * sizeof(audioPath));
-			paths->ptr[paths->size - 1] = newAudioPath;
-			paths->mutex->unlock();
+			this->paths->mutex->lock();
+			this->paths->size++;
+			this->paths->ptr = (audioPath*)realloc(paths->ptr, paths->size * sizeof(audioPath));
+			this->paths->ptr[paths->size - 1] = newAudioPath;
+			this->paths->mutex->unlock();
 			return;
 		}
 	}
@@ -136,16 +148,13 @@ void castRay(RTCScene scene,
 	return;
 }
 
-void OmnidirectionalUniformSphereRayCast(Scene * scene,
-	glm::vec3 listener_pos,
-	glm::vec3 source_pos,
-	audioPaths * paths)
+void RayTracer::OmnidirectionalUniformSphereRayCast()
 {
 	//If we are rendering audio again then we celar previously found paths
-	if (paths->ptr) {
-		free(paths->ptr);
-		paths->ptr = NULL;
-		paths->size = 0;
+	if (this->paths->ptr) {
+		free(this->paths->ptr);
+		this->paths->ptr = NULL;
+		this->paths->size = 0;
 	}
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::mt19937 generator(seed);
@@ -158,8 +167,8 @@ void OmnidirectionalUniformSphereRayCast(Scene * scene,
 		double dy = sin(phi) * sin(theta);
 		double dz = cos(phi);
 		glm::vec3 dir = glm::normalize(glm::vec3(dx, dy, dz));
-		rayHistory new_ray_history = { 0.0f, SOURCE_POWER / NUMBER_OF_RAYS, 0 };
-		castRay(scene->getRTCScene(), source_pos, dir, listener_pos, new_ray_history, paths);
+		rayHistory new_ray_history = { 0.0f, this->source_power / NUMBER_OF_RAYS, 0 };
+		castRay(source_pos, dir, new_ray_history);
 	}
 
 	////srand(time(NULL));
@@ -178,7 +187,11 @@ void OmnidirectionalUniformSphereRayCast(Scene * scene,
 	//}
 }
 
-void viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
+void RayTracer::viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
 	rayHistory new_ray_history = { 0.0f, 1.0f, 0 };
-	castRay(scene->getRTCScene(), camera->pos, camera->ref - camera->pos, source->pos, new_ray_history, NULL);
+	castRay(camera->pos, camera->ref - camera->pos, new_ray_history);
+}
+
+RayTracer::~RayTracer() {
+
 }

@@ -270,18 +270,20 @@ void getFileImpulseResponse(char* file_path) {
 	scene_doc.LoadFile(file_path);
 
 	const char* model_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MODEL")->GetText();
-	float scene_size = stof(scene_doc.FirstChildElement("SCENE")->FirstChildElement("SCENE_SIZE")->GetText());
+	float scene_size = scene_doc.FirstChildElement("SCENE")->FirstChildElement("SIZE")->FloatText();
 
+	float source_power = scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FirstChildElement("POWER")->FloatText();
 	glm::vec3 source_pos = glm::vec3(
-		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FloatAttribute("POS_X"),
-		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FloatAttribute("POS_Y"),
-		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FloatAttribute("POS_Z")
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FirstChildElement("POS_X")->FloatText(),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FirstChildElement("POS_Y")->FloatText(),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FirstChildElement("POS_Z")->FloatText()
 	);
 
+	float listener_size = scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FirstChildElement("SIZE")->FloatText();
 	glm::vec3 listener_pos = glm::vec3(
-		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FloatAttribute("POS_X"),
-		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FloatAttribute("POS_Y"),
-		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FloatAttribute("POS_Z")
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FirstChildElement("POS_X")->FloatText(),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FirstChildElement("POS_Y")->FloatText(),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FirstChildElement("POS_Z")->FloatText()
 	);
 
 	RTCDevice device = initializeDevice();
@@ -289,15 +291,16 @@ void getFileImpulseResponse(char* file_path) {
 	scene->addObjectFromOBJ(model_file_path, glm::vec3(0.0f, 0.0f, 0.0f), scene_size, &device);
 	scene->commitScene();
 
-	const char* measurement_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MEASUREMENT")->GetText();
+	const char* measurement_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MEASUREMENT")->FirstChildElement("FILE")->GetText();
+	unsigned int measurement_length = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MEASUREMENT")->FirstChildElement("LENGTH")->UnsignedText();
 
-	renderAudioFile(scene, listener_pos, source_pos, measurement_file_path);
+	renderAudioFile(scene, listener_pos, listener_size, source_pos, source_power, measurement_file_path, measurement_length);
 
 }
 
 int main(int argc, char* argv[]) {
-	if (argc >= 1) {
-		char* file_path = argv[0];
+	if (argc > 1) {
+		char* file_path = argv[1];
 		getFileImpulseResponse(file_path);
 	}
 	else {

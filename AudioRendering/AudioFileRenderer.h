@@ -9,16 +9,25 @@
 #include "Scene.h"
 #include "Source.h"
 
-#include "wavParser.h"
+#include "AudioFile.h"
 
-void renderAudioFile(Scene * scene, glm::vec3 camera_pos, glm::vec3 source_pos , const char * measurement_file_path) {
+void renderAudioFile(
+	Scene * scene, 
+	glm::vec3 listener_pos, 
+	float listener_size,
+	glm::vec3 source_pos ,
+	float source_power,
+	const char * measurement_file_path,
+	unsigned int measurement_length) {
 
 	audioPaths * paths = new audioPaths();
 	paths->ptr = NULL;
 	paths->size = 0;
 	paths->mutex = new std::mutex;
 
-	OmnidirectionalUniformSphereRayCast(scene, camera_pos, source_pos, paths);
+	RayTracer rt = RayTracer(scene, listener_pos, listener_size, source_pos, source_power, paths);
+
+	rt.OmnidirectionalUniformSphereRayCast();
 
 	//The size of Rs will depend on the lenght of the IR I want to mesure and the subdivision of that time length.
 	//This means that if I want an IR to match the Rs used for auralization then I will have to simulate a 1 second IR
@@ -26,10 +35,20 @@ void renderAudioFile(Scene * scene, glm::vec3 camera_pos, glm::vec3 source_pos ,
 	//However any other combination can be used depending on the desired outcome. If I just want to compare the result
 	//of the simulation with the measurement, then the size will depend on the size and sample rate of the measurement file.
 	
-	WavData * wav_data = new WavData();
-	loadWavFile(measurement_file_path, wav_data);
+	AudioFile<float> measurement_file;
+	measurement_file.load(measurement_file_path);
+
+	auto sample_rate = measurement_file.getSampleRate();
 	
-	size_t size = 1000;
+	size_t size;
+	if (measurement_length) {
+		size = round(sample_rate * ((float)measurement_length/1000));
+	}
+	else {
+		auto length = measurement_file.getLengthInSeconds();
+		size = sample_rate * round(length);
+	}
+
 	std::vector<float> * rs = new std::vector<float>(size);
 
 	//Initialize Rs
@@ -42,7 +61,7 @@ void renderAudioFile(Scene * scene, glm::vec3 camera_pos, glm::vec3 source_pos ,
 		float elapsed_time = distance / SPEED_OF_SOUND;
 		//The elapsed time is then converted to a position in the array by multiplying the time by the samples per second
 		//This way a path that takes 1s to reach the listener will ocuppy the last position in the array.
-		unsigned int array_pos = round(elapsed_time * SAMPLE_RATE);
+		unsigned int array_pos = round(elapsed_time * sample_rate);
 		if (array_pos < size && array_pos >= 0) {
 			(*rs)[array_pos] += remaining_factor;
 		}
@@ -53,6 +72,10 @@ void renderAudioFile(Scene * scene, glm::vec3 camera_pos, glm::vec3 source_pos ,
 	for (int i = 0; i < size; i++) {
 		rs_file << (*rs)[i] << ",";
 		received_energy += (*rs)[i];
+	}
+	rs_file << std::endl;
+	for (int i = 0; i < size; i++) {
+		rs_file << measurement_file.samples[0][i] << ",";
 	}
 	rs_file << std::endl << received_energy;
 	rs_file.close();

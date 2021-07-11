@@ -146,7 +146,8 @@ AudioRenderer::AudioRenderer() {
 }
 
 void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
-	OmnidirectionalUniformSphereRayCast(scene, camera->pos, source->pos, this->currentPaths);
+	RayTracer rt = RayTracer(scene, camera->pos, LISTENER_SPHERE_RADIUS, source->pos, SOURCE_POWER, this->currentPaths);
+	rt.OmnidirectionalUniformSphereRayCast();
 	
 	//Initialize Rs
 	std::fill(this->audioData->Rs->begin(), this->audioData->Rs->end(), 0.0);
