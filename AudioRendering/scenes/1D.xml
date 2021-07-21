@@ -3,6 +3,9 @@
 <SCENE>
 <MODEL>models/1D_U.obj</MODEL>
 <SIZE>1.0</SIZE>	<!-->Model's scale<!-->
+<MAX_REFLEXIONS>30</MAX_REFLEXIONS>
+<ABSORBTION>0.1</ABSORBTION>
+<NUM_RAYS>10000000</NUM_RAYS>
 <SOURCE>
 	<POWER>100</POWER>	<!-->Sound level of the source: Lw<!-->
 	<POS_X>0.0</POS_X>

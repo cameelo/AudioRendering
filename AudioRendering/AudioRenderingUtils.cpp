@@ -9,13 +9,19 @@ RayTracer::RayTracer(Scene * scene,
 	float listener_size,
 	glm::vec3 source_pos,
 	float source_power,
-	audioPaths * paths) {
+	audioPaths * paths,
+	int max_reflexions,
+	float reflexion_coef,
+	int num_rays) {
 	this->scene = scene;
 	this->listener_pos = listener_pos;
 	this->listener_size = listener_size;
 	this->source_pos = source_pos;
 	this->source_power = source_power;
 	this->paths = paths;
+	this->max_reflexions = max_reflexions;
+	this->reflexion_coef = reflexion_coef;
+	this->num_rays = num_rays;
 }
 
 float RayTracer::raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center) {
@@ -104,7 +110,7 @@ void RayTracer::castRay(
 		}
 
 		//Calculate remaining energy if less than something also return
-		if (history.reflection_num > 10) {
+		if (history.reflection_num > this->max_reflexions) {
 			//printf("Ray exahusted.\n");
 			return;
 		}
@@ -121,9 +127,11 @@ void RayTracer::castRay(
 		glm::vec3 new_origin = origin + dir * rayhit.ray.tfar;
 		//When casting new ray new origin must me moved delta in the new direction to avoid numeric errors. (Ray begining inside the geometry)
 		history.reflection_num++;
-		history.remaining_energy_factor *= 0.5;
+		history.remaining_energy_factor *= reflexion_coef;
 		history.travelled_distance += rayhit.ray.tfar;
-		castRay(new_origin + new_dir * 0.01f, new_dir, history);
+		//if (history.remaining_energy_factor > 0.0000000001) {
+			castRay(new_origin + new_dir * 0.01f, new_dir, history);
+		//}
 
 		/* Note how geomID and primID identify the geometry we just hit.
 		 * We could use them here to interpolate geometry information,
@@ -160,14 +168,14 @@ void RayTracer::OmnidirectionalUniformSphereRayCast()
 	std::mt19937 generator(seed);
 	std::uniform_real_distribution<double> uniform01(0.0, 1.0);
 
-	for (int i = 0; i < NUMBER_OF_RAYS; ++i) {
+	for (int i = 0; i < this->num_rays; ++i) {
 		double theta = 2 * M_PI * uniform01(generator);
 		double phi = acos(1 - 2 * uniform01(generator));
 		double dx = sin(phi) * cos(theta);
 		double dy = sin(phi) * sin(theta);
 		double dz = cos(phi);
 		glm::vec3 dir = glm::normalize(glm::vec3(dx, dy, dz));
-		rayHistory new_ray_history = { 0.0f, this->source_power / NUMBER_OF_RAYS, 0 };
+		rayHistory new_ray_history = { 0.0f, this->source_power / this->num_rays, 0 };
 		castRay(source_pos, dir, new_ray_history);
 	}
 

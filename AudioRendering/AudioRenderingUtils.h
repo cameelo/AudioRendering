@@ -47,13 +47,19 @@ public:
 	glm::vec3 source_pos;
 	float source_power;
 	audioPaths * paths;
+	int max_reflexions;
+	float reflexion_coef;
+	int num_rays;
 public:
 	RayTracer(Scene * scene,
 		glm::vec3 listener_pos,
 		float listener_size,
 		glm::vec3 source_pos,
 		float source_power,
-		audioPaths * paths);
+		audioPaths * paths,
+		int max_reflexions,
+		float reflexion_coef,
+		int num_rays);
 
 	//Returns the distance to the intersection if there is one, -1 if not.
 	float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center);
