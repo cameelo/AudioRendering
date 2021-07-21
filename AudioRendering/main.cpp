@@ -271,6 +271,9 @@ void getFileImpulseResponse(char* file_path) {
 
 	const char* model_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MODEL")->GetText();
 	float scene_size = scene_doc.FirstChildElement("SCENE")->FirstChildElement("SIZE")->FloatText();
+	int max_reflexions = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MAX_REFLEXIONS")->IntText();
+	float absorbtion_coef = scene_doc.FirstChildElement("SCENE")->FirstChildElement("ABSORBTION")->FloatText();
+	int num_rays = scene_doc.FirstChildElement("SCENE")->FirstChildElement("NUM_RAYS")->IntText();
 
 	float source_power = scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FirstChildElement("POWER")->FloatText();
 	glm::vec3 source_pos = glm::vec3(
@@ -294,7 +297,7 @@ void getFileImpulseResponse(char* file_path) {
 	const char* measurement_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MEASUREMENT")->FirstChildElement("FILE")->GetText();
 	unsigned int measurement_length = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MEASUREMENT")->FirstChildElement("LENGTH")->UnsignedText();
 
-	renderAudioFile(scene, listener_pos, listener_size, source_pos, source_power, measurement_file_path, measurement_length);
+	renderAudioFile(scene, listener_pos, listener_size, source_pos, source_power, measurement_file_path, measurement_length, max_reflexions, absorbtion_coef, num_rays);
 
 }
 

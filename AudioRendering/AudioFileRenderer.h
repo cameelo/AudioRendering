@@ -18,14 +18,17 @@ void renderAudioFile(
 	glm::vec3 source_pos ,
 	float source_power,
 	const char * measurement_file_path,
-	unsigned int measurement_length) {
+	unsigned int measurement_length,
+	int max_reflexions,
+	float absorbtion_coef,
+	int num_rays) {
 
 	audioPaths * paths = new audioPaths();
 	paths->ptr = NULL;
 	paths->size = 0;
 	paths->mutex = new std::mutex;
 
-	RayTracer rt = RayTracer(scene, listener_pos, listener_size, source_pos, source_power, paths);
+	RayTracer rt = RayTracer(scene, listener_pos, listener_size, source_pos, source_power, paths, max_reflexions, 1-absorbtion_coef, num_rays);
 
 	rt.OmnidirectionalUniformSphereRayCast();
 
