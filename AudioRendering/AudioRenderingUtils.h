@@ -39,6 +39,11 @@ typedef struct audioPaths {
 	std::mutex * mutex;
 } audioPaths;
 
+typedef struct intersectionData {
+	float distance_to_sphere;
+	float distance_inside_sphere;
+};
+
 class RayTracer {
 public:
 	Scene * scene;
@@ -61,8 +66,10 @@ public:
 		float reflexion_coef,
 		int num_rays);
 
+	float rayIntensity(float remaining_energy, float distance_inside_sphere);
+
 	//Returns the distance to the intersection if there is one, -1 if not.
-	float raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center);
+	intersectionData raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center);
 
 	/*
 	 * Cast a single ray with origin (ox, oy, oz) and direction

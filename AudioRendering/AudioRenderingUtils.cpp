@@ -24,7 +24,7 @@ RayTracer::RayTracer(Scene * scene,
 	this->num_rays = num_rays;
 }
 
-float RayTracer::raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center) {
+intersectionData RayTracer::raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec3 center) {
 	//The following is obtained from solving the ecuation system given by the ray and sphere
 	//The result is a second degree ecuation: at^2 + bt + c = 0
 	float a = glm::dot(dir, dir);
@@ -32,16 +32,24 @@ float RayTracer::raySphereIntersection(glm::vec3 origin, glm::vec3 dir, glm::vec
 	float c = glm::dot(origin - center, origin - center) - pow(this->listener_size, 2);
 	float discriminant = (pow(b, 2) - 4 * a*c);
 	if (discriminant < 0) {
-		return -1;
+		return { -1, 0 };
 	}
 	else {
 		float t1 = (-b - sqrt(discriminant)) / (2.0*a);
 		float t2 = (-b + sqrt(discriminant)) / (2.0*a);
 		if (t1 > 0 && t2 > 0) {
-			return std::min(t1, t2);
+			if (t2 > t1) {
+				return { t1, t2 - t1 };
+			}else {
+				return { t2, t1 - t2 };
+			}
 		}
-		return -1;
+		return { -1, 0 };
 	}
+}
+
+float RayTracer::rayIntensity(float remaining_energy, float distance_inside_sphere) {
+	return distance_inside_sphere * remaining_energy / (4 / 3 * M_PI * this->listener_size);
 }
 
 /*
@@ -83,20 +91,20 @@ void RayTracer::castRay(
 	rtcIntersect1(this->scene->getRTCScene(), &context, &rayhit);
 
 	//Check if ray interescts listener
-	float distance_to_source = raySphereIntersection(origin, dir, listener_pos);
+	intersectionData intersection_data = raySphereIntersection(origin, dir, listener_pos);
 	//Check if ray intersects room
 	if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
 	{
 		//If listener intersection found
-		if (distance_to_source >= 0) {
+		if (intersection_data.distance_to_sphere >= 0) {
 			//If listener intersection is before room interection
-			if (distance_to_source < rayhit.ray.tfar) {
+			if (intersection_data.distance_to_sphere < rayhit.ray.tfar) {
 				//Add distance_to_source to overall distance
 				//Calculate parameters for transfer function (e.g. absorption from specular reflections)
 				//Return parameters and traveled distance to add to the histogram
 				//printf("Found intersection with listener. %i\n", history.reflection_num);
 				//Add path to paths
-				audioPath newAudioPath = { history.travelled_distance + distance_to_source, history.remaining_energy_factor };
+				audioPath newAudioPath = { history.travelled_distance + intersection_data.distance_to_sphere, rayIntensity(history.remaining_energy_factor, intersection_data.distance_inside_sphere) };
 				this->paths->mutex->lock();
 				this->paths->size++;
 				this->paths->ptr = (audioPath*)realloc(paths->ptr, paths->size * sizeof(audioPath));
@@ -138,12 +146,12 @@ void RayTracer::castRay(
 		 * compute shading, etc. */
 	}
 	else {
-		if (distance_to_source >= 0) {
+		if (intersection_data.distance_to_sphere >= 0) {
 			//Add distance_to_source to overall distance
 			//Calculate parameters for transfer function (e.g. absorption from specular reflections)
 			//Return parameters and traveled distance to add to the histogram
 			//printf("Found intersection with listener. %i\n", history.reflection_num);
-			audioPath newAudioPath = { history.travelled_distance + distance_to_source, history.remaining_energy_factor };
+			audioPath newAudioPath = { history.travelled_distance + intersection_data.distance_to_sphere, rayIntensity(history.remaining_energy_factor, intersection_data.distance_inside_sphere) };
 			this->paths->mutex->lock();
 			this->paths->size++;
 			this->paths->ptr = (audioPath*)realloc(paths->ptr, paths->size * sizeof(audioPath));
