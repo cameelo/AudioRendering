@@ -3,8 +3,9 @@
 <SCENE>
 <MODEL>models/2D_U.obj</MODEL>
 <SIZE>1.0</SIZE>	<!-->Model's scale<!-->
-<MAX_REFLEXIONS>30</MAX_REFLEXIONS>
+<MAX_REFLEXIONS>10</MAX_REFLEXIONS>
 <ABSORBTION>0.1</ABSORBTION>
+<NUM_RAYS>10000000</NUM_RAYS>
 <SOURCE>
 	<POWER>100</POWER>	<!-->Sound level of the source: Lw<!-->
 	<POS_X>0.0</POS_X>
@@ -12,7 +13,7 @@
 	<POS_Z>0.0</POS_Z>
 </SOURCE>
 <LISTENER>
-	<SIZE>0.5</SIZE>	<!-->Radius of the sphere representing the listener. Meters.<!-->
+	<SIZE>0.14</SIZE>	<!-->Radius of the sphere representing the listener. Meters.<!-->
 	<POS_X>2.5</POS_X>
 	<POS_Y>0.0</POS_Y>
 	<POS_Z>8.55</POS_Z>
