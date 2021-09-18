@@ -30,6 +30,7 @@ typedef struct rayHistory {
 typedef struct audioPath {
 	float travelled_distance;
 	float remaining_energy_factor;
+	bool is_direct_path;
 } audioPath;
 
 typedef struct audioPaths {
@@ -82,6 +83,7 @@ public:
 		rayHistory history);
 
 	void OmnidirectionalUniformSphereRayCast();
+	void OmnidirectionalHaltonSphereRayCast();
 
 	void viewDirRayCast(Scene * scene, Camera * camera, Source * source);
 

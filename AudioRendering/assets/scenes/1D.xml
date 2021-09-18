@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 
 <SCENE>
-<MODEL>models/1D_U.obj</MODEL>
+<MODEL>assets/models/1D_U.obj</MODEL>
 <SIZE>1.0</SIZE>	<!-->Model's scale<!-->
 <MAX_REFLEXIONS>30</MAX_REFLEXIONS>
-<ABSORBTION>0.1</ABSORBTION>
+<ABSORBTION>0.01</ABSORBTION>
 <NUM_RAYS>10000000</NUM_RAYS>
 <SOURCE>
-	<POWER>100</POWER>	<!-->Sound level of the source: Lw<!-->
+	<POWER>31.62</POWER>	<!-->Sound level of the source: Lw<!-->
 	<POS_X>0.0</POS_X>
 	<POS_Y>0.0</POS_Y>
 	<POS_Z>0.0</POS_Z>

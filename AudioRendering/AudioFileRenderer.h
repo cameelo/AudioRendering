@@ -81,5 +81,14 @@ void renderAudioFile(
 		rs_file << measurement_file.samples[0][i] << ",";
 	}
 	rs_file << std::endl << received_energy;
+
+	rs_file << std::endl;
+	int direct_paths = 0;
+	for (int i = 0; i < paths->size; i++) {
+		if (paths->ptr[i].is_direct_path) {
+			direct_paths++;
+			rs_file << paths->ptr[i].remaining_energy_factor << ",";
+		}
+	}
 	rs_file.close();
 }
