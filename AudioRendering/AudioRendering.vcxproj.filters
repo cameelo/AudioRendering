@@ -54,6 +54,9 @@
     <ClCompile Include="AudioRenderingUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Halton.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tiny_obj_loader.h">
@@ -150,6 +153,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AudioFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Halton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="halton_sampler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

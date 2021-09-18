@@ -267,7 +267,11 @@ void auralize() {
 
 void getFileImpulseResponse(char* file_path) {
 	tinyxml2::XMLDocument scene_doc;
-	scene_doc.LoadFile(file_path);
+
+	if (scene_doc.LoadFile(file_path)) {
+		cout << "Error loading file" << endl;
+		return;
+	}
 
 	const char* model_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MODEL")->GetText();
 	float scene_size = scene_doc.FirstChildElement("SCENE")->FirstChildElement("SIZE")->FloatText();
@@ -303,10 +307,12 @@ void getFileImpulseResponse(char* file_path) {
 
 int main(int argc, char* argv[]) {
 	if (argc > 1) {
+		cout << "Simulating audio" << endl;
 		char* file_path = argv[1];
 		getFileImpulseResponse(file_path);
 	}
 	else {
+		cout << "Auralizing audio" << endl;
 		auralize();
 	}
 	return 0;

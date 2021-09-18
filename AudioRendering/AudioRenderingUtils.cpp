@@ -3,6 +3,11 @@
 #include<random>
 #include<cmath>
 #include<chrono>
+#include <vector>
+#include "Halton.h"
+#include "halton_sampler.h"
+#include <ctime>
+#include <iostream>
 
 RayTracer::RayTracer(Scene * scene,
 	glm::vec3 listener_pos,
@@ -49,7 +54,7 @@ intersectionData RayTracer::raySphereIntersection(glm::vec3 origin, glm::vec3 di
 }
 
 float RayTracer::rayIntensity(float remaining_energy, float distance_inside_sphere) {
-	return distance_inside_sphere * remaining_energy / (4 / 3 * M_PI * this->listener_size);
+	return distance_inside_sphere * remaining_energy / ((4 / 3) * M_PI * pow(this->listener_size, 3));
 }
 
 /*
@@ -104,7 +109,7 @@ void RayTracer::castRay(
 				//Return parameters and traveled distance to add to the histogram
 				//printf("Found intersection with listener. %i\n", history.reflection_num);
 				//Add path to paths
-				audioPath newAudioPath = { history.travelled_distance + intersection_data.distance_to_sphere, rayIntensity(history.remaining_energy_factor, intersection_data.distance_inside_sphere) };
+				audioPath newAudioPath = { history.travelled_distance + intersection_data.distance_to_sphere, rayIntensity(history.remaining_energy_factor, intersection_data.distance_inside_sphere), history.reflection_num == 0 };
 				this->paths->mutex->lock();
 				this->paths->size++;
 				this->paths->ptr = (audioPath*)realloc(paths->ptr, paths->size * sizeof(audioPath));
@@ -151,7 +156,7 @@ void RayTracer::castRay(
 			//Calculate parameters for transfer function (e.g. absorption from specular reflections)
 			//Return parameters and traveled distance to add to the histogram
 			//printf("Found intersection with listener. %i\n", history.reflection_num);
-			audioPath newAudioPath = { history.travelled_distance + intersection_data.distance_to_sphere, rayIntensity(history.remaining_energy_factor, intersection_data.distance_inside_sphere) };
+			audioPath newAudioPath = { history.travelled_distance + intersection_data.distance_to_sphere, rayIntensity(history.remaining_energy_factor, intersection_data.distance_inside_sphere), history.reflection_num == 0 };
 			this->paths->mutex->lock();
 			this->paths->size++;
 			this->paths->ptr = (audioPath*)realloc(paths->ptr, paths->size * sizeof(audioPath));
@@ -172,6 +177,7 @@ void RayTracer::OmnidirectionalUniformSphereRayCast()
 		this->paths->ptr = NULL;
 		this->paths->size = 0;
 	}
+
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::mt19937 generator(seed);
 	std::uniform_real_distribution<double> uniform01(0.0, 1.0);
@@ -201,6 +207,34 @@ void RayTracer::OmnidirectionalUniformSphereRayCast()
 	//		castRay(scene->getRTCScene(), source->pos, dir, camera->pos);
 	//	}
 	//}
+}
+
+void RayTracer::OmnidirectionalHaltonSphereRayCast()
+{
+	//If we are rendering audio again then we celar previously found paths
+	if (this->paths->ptr) {
+		free(this->paths->ptr);
+		this->paths->ptr = NULL;
+		this->paths->size = 0;
+	}
+
+	//Halton_sampler sampler = Halton_sampler();
+	//sampler.init_faure();
+
+	for (int i = 0; i < this->num_rays; ++i) {
+		double* phitheta = halton(i, 2);
+		/*float halton_x = sampler.sample(2, i);
+		float halton_y = sampler.sample(3, i);*/
+		double theta = 2 * M_PI * phitheta[1];
+		double phi = acos(1 - 2 * phitheta[0]);
+		delete[] phitheta;
+		double dx = sin(phi) * cos(theta);
+		double dy = sin(phi) * sin(theta);
+		double dz = cos(phi);
+		glm::vec3 dir = glm::normalize(glm::vec3(dx, dy, dz));
+		rayHistory new_ray_history = { 0.0f, this->source_power / this->num_rays, 0 };
+		castRay(source_pos, dir, new_ray_history);
+	}
 }
 
 void RayTracer::viewDirRayCast(Scene * scene, Camera * camera, Source * source) {
