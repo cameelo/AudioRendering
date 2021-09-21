@@ -21,7 +21,8 @@ void renderAudioFile(
 	unsigned int measurement_length,
 	int max_reflexions,
 	float absorbtion_coef,
-	int num_rays) {
+	int num_rays,
+	timeInterval interval) {
 
 	audioPaths * paths = new audioPaths();
 	paths->ptr = NULL;
@@ -30,7 +31,7 @@ void renderAudioFile(
 
 	RayTracer rt = RayTracer(scene, listener_pos, listener_size, source_pos, source_power, paths, max_reflexions, 1-absorbtion_coef, num_rays);
 
-	rt.OmnidirectionalUniformSphereRayCast();
+	rt.OmnidirectionalHaltonSphereRayCast();
 
 	//The size of Rs will depend on the lenght of the IR I want to mesure and the subdivision of that time length.
 	//This means that if I want an IR to match the Rs used for auralization then I will have to simulate a 1 second IR
@@ -57,11 +58,19 @@ void renderAudioFile(
 	//Initialize Rs
 	std::fill(rs->begin(), rs->end(), 0.0);
 
+	unsigned int interval_size = (interval.end - interval.begin) *  (sample_rate / 1000);
+	std::vector<unsigned int> rays_in_interval(interval_size);
+	std::fill(rays_in_interval.begin(), rays_in_interval.end(), 0);
+
 	//Paths store the distance, to get the corresponding cell in vector Rs we need to find the elapsed time
 	for (int i = 0; i < paths->size; i++) {
 		float distance = paths->ptr[i].travelled_distance;
 		float remaining_factor = paths->ptr[i].remaining_energy_factor;
 		float elapsed_time = distance / SPEED_OF_SOUND;
+		if (elapsed_time * 1000 > interval.begin && elapsed_time * 1000 < interval.end) {
+			rays_in_interval[round((elapsed_time * 1000 - interval.begin) * (sample_rate / 1000))] += 1;
+			//rays_in_interval.push_back(remaining_factor);
+		}
 		//The elapsed time is then converted to a position in the array by multiplying the time by the samples per second
 		//This way a path that takes 1s to reach the listener will ocuppy the last position in the array.
 		unsigned int array_pos = round(elapsed_time * sample_rate);
@@ -90,5 +99,11 @@ void renderAudioFile(
 			rs_file << paths->ptr[i].remaining_energy_factor << ",";
 		}
 	}
+
+	rs_file << std::endl;
+	for (int i = 0; i < rays_in_interval.size(); i++) {
+		rs_file << rays_in_interval.at(i) << ",";
+	}
+
 	rs_file.close();
 }
