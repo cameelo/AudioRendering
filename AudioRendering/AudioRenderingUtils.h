@@ -45,6 +45,11 @@ typedef struct intersectionData {
 	float distance_inside_sphere;
 };
 
+typedef struct timeInterval {
+	unsigned int begin;			//milliseconds
+	unsigned int end;
+} timeInterval;
+
 class RayTracer {
 public:
 	Scene * scene;

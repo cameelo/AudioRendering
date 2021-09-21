@@ -301,7 +301,17 @@ void getFileImpulseResponse(char* file_path) {
 	const char* measurement_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MEASUREMENT")->FirstChildElement("FILE")->GetText();
 	unsigned int measurement_length = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MEASUREMENT")->FirstChildElement("LENGTH")->UnsignedText();
 
-	renderAudioFile(scene, listener_pos, listener_size, source_pos, source_power, measurement_file_path, measurement_length, max_reflexions, absorbtion_coef, num_rays);
+	timeInterval interval;
+	if (scene_doc.FirstChildElement("SCENE")->FirstChildElement("ANALYZE")) {
+		unsigned int begin = scene_doc.FirstChildElement("SCENE")->FirstChildElement("ANALYZE")->FirstChildElement("BEGIN")->IntText();
+		unsigned int end = scene_doc.FirstChildElement("SCENE")->FirstChildElement("ANALYZE")->FirstChildElement("END")->IntText();
+		interval = { begin, end };
+	}
+	else {
+		interval = { 0, 0 };
+	}
+
+	renderAudioFile(scene, listener_pos, listener_size, source_pos, source_power, measurement_file_path, measurement_length, max_reflexions, absorbtion_coef, num_rays, interval);
 
 }
 

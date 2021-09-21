@@ -22,4 +22,8 @@
 	<FILE>assets/measurements/1D_030_AllPass.wav</FILE>
 	<LENGTH>500</LENGTH>	<!-->Lenght to consider of the measurement. Milliseconds.<!-->
 </MEASUREMENT>
+<ANALYZE>
+	<BEGIN>250</BEGIN>
+	<END>350</END>
+</ANALYZE>
 </SCENE>
