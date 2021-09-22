@@ -49,8 +49,16 @@ public:
 	streamParameters * streamParams;
 	unsigned int * bufferBytes;
 	audioCallbackData * audioData;
+
+	//Simulation data
+	int max_reflexions;
+	float absorbtion_coef;
+	int num_rays;
+	float source_power;
+	float listener_size;
+
 public:
-	AudioRenderer();
+	AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size);
 	void render(Scene * scene, Camera * camera, Source * source);
 	~AudioRenderer();
 };

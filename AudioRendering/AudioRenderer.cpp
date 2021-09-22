@@ -79,7 +79,13 @@ int inout(void *outputBuffer, void *inputBuffer, unsigned int /*nBufferFrames*/,
 	return 0;
 }
 
-AudioRenderer::AudioRenderer() {
+AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size) {
+	this->max_reflexions = max_reflexions;
+	this->absorbtion_coef = absorbtion_coef;
+	this->num_rays = num_rays;
+	this->source_power = source_power;
+	this->listener_size = listener_size;
+
 	//Init audio stream
 	this->audioApi = new RtAudio();
 
@@ -146,7 +152,7 @@ AudioRenderer::AudioRenderer() {
 }
 
 void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
-	RayTracer rt = RayTracer(scene, camera->pos, LISTENER_SPHERE_RADIUS, source->pos, SOURCE_POWER, this->currentPaths, 10, 0.5, 1000000);
+	RayTracer rt = RayTracer(scene, camera->pos, this->listener_size, source->pos, this->source_power, this->currentPaths, this->max_reflexions, 1-(this->absorbtion_coef), this->num_rays);
 	rt.OmnidirectionalUniformSphereRayCast();
 	
 	//Initialize Rs

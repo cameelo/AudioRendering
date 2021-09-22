@@ -31,7 +31,7 @@ void renderAudioFile(
 
 	RayTracer rt = RayTracer(scene, listener_pos, listener_size, source_pos, source_power, paths, max_reflexions, 1-absorbtion_coef, num_rays);
 
-	rt.OmnidirectionalHaltonSphereRayCast();
+	rt.OmnidirectionalUniformSphereRayCast();
 
 	//The size of Rs will depend on the lenght of the IR I want to mesure and the subdivision of that time length.
 	//This means that if I want an IR to match the Rs used for auralization then I will have to simulate a 1 second IR

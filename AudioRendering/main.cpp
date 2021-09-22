@@ -174,17 +174,44 @@ void close() {
 	SDL_Quit();
 }
 
-void auralize() {
+void auralize(char* file_path) {
 	init();
 	RTCDevice device = initializeDevice();
 	AuralizationScene * scene = new AuralizationScene(device);
-	scene->addObjectFromOBJ("models/street.obj", glm::vec3(0.0f, 0.0f, 0.0f), 10.0f, &device);
-	//new_scene->addMeshFromObj("models/teapot.obj", device);
+
+	tinyxml2::XMLDocument scene_doc;
+
+	if (scene_doc.LoadFile(file_path)) {
+		cout << "Error loading file" << endl;
+		return;
+	}
+
+	const char* model_file_path = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MODEL")->GetText();
+	float scene_size = scene_doc.FirstChildElement("SCENE")->FirstChildElement("SIZE")->FloatText();
+	int max_reflexions = scene_doc.FirstChildElement("SCENE")->FirstChildElement("MAX_REFLEXIONS")->IntText();
+	float absorbtion_coef = scene_doc.FirstChildElement("SCENE")->FirstChildElement("ABSORBTION")->FloatText();
+	int num_rays = scene_doc.FirstChildElement("SCENE")->FirstChildElement("NUM_RAYS")->IntText();
+
+	float source_power = scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FirstChildElement("POWER")->FloatText();
+	glm::vec3 source_pos = glm::vec3(
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FirstChildElement("POS_X")->FloatText(),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FirstChildElement("POS_Y")->FloatText(),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("SOURCE")->FirstChildElement("POS_Z")->FloatText()
+	);
+
+	float listener_size = scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FirstChildElement("SIZE")->FloatText();
+	glm::vec3 listener_pos = glm::vec3(
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FirstChildElement("POS_X")->FloatText(),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FirstChildElement("POS_Y")->FloatText(),
+		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FirstChildElement("POS_Z")->FloatText()
+	);
+
+	scene->addObjectFromOBJ(model_file_path, glm::vec3(0.0f, 0.0f, 0.0f), scene_size, &device);
 	scene->commitScene();
 
-	AudioRenderer audio = AudioRenderer();
-	Camera cam = Camera(WIDTH, HEIGHT, 45, window);
-	Source * source = new Source(glm::vec3(0, 0, 0), 2, "models/sphere.obj");
+	AudioRenderer audio = AudioRenderer(max_reflexions, absorbtion_coef, num_rays, source_power, listener_size);
+	Camera cam = Camera(listener_pos, WIDTH, HEIGHT, 45, window);
+	Source * source = new Source(glm::vec3(0.0f, 0.0f, 0.0f), 0.25, "assets/models/sphere.obj");
 	audio.render(scene, &cam, source);
 	ShaderProgram* pass = new ShaderProgram("assets/shaders/pass.vert", "assets/shaders/pass.frag");
 	bool exit = false;
@@ -316,14 +343,19 @@ void getFileImpulseResponse(char* file_path) {
 }
 
 int main(int argc, char* argv[]) {
-	if (argc > 1) {
+	char* mode = argv[1];
+	if (!strcmp(mode, "simulate")) {
 		cout << "Simulating audio" << endl;
-		char* file_path = argv[1];
+		char* file_path = argv[2];
 		getFileImpulseResponse(file_path);
 	}
-	else {
+	else if (!strcmp(mode, "auralize")) {
 		cout << "Auralizing audio" << endl;
-		auralize();
+		char* file_path = argv[2];
+		auralize(file_path);
+	}
+	else {
+		cout << "Invalid mode" << endl;
 	}
 	return 0;
 }
