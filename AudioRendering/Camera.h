@@ -22,7 +22,7 @@ class Camera {
 		glm::mat4 projectionMatrix;
 
 		Camera() {};
-		Camera(float width, float height, float fov, SDL_Window* win);
+		Camera(glm::vec3 pos, float width, float height, float fov, SDL_Window* win);
 		Camera(glm::vec3 pos, glm::vec3 ref, glm::vec3 up, float fov, float sensitivity, float speed, SDL_Window* win, float width, float height);
 		void update();
 		void moveCam();
