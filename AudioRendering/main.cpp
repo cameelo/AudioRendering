@@ -206,10 +206,18 @@ void auralize(char* file_path) {
 		scene_doc.FirstChildElement("SCENE")->FirstChildElement("LISTENER")->FirstChildElement("POS_Z")->FloatText()
 	);
 
+	int sample_rate;
+	if (scene_doc.FirstChildElement("SCENE")->FirstChildElement("OUT_SAMPLERATE")) {
+		sample_rate = scene_doc.FirstChildElement("SCENE")->FirstChildElement("OUT_SAMPLERATE")->IntText();
+	}
+	else {
+		sample_rate = SAMPLE_RATE;
+	}
+
 	scene->addObjectFromOBJ(model_file_path, glm::vec3(0.0f, 0.0f, 0.0f), scene_size, &device);
 	scene->commitScene();
 
-	AudioRenderer audio = AudioRenderer(max_reflexions, absorbtion_coef, num_rays, source_power, listener_size);
+	AudioRenderer audio = AudioRenderer(max_reflexions, absorbtion_coef, num_rays, source_power, listener_size, sample_rate);
 	Camera cam = Camera(listener_pos, WIDTH, HEIGHT, 45, window);
 	Source * source = new Source(glm::vec3(0.0f, 0.0f, 0.0f), 0.25, "assets/models/sphere.obj");
 	audio.render(scene, &cam, source);
@@ -217,6 +225,7 @@ void auralize(char* file_path) {
 	bool exit = false;
 
 	bool wireframe = false;
+	bool active_rendering = false;
 
 	SDL_Event event;
 
@@ -245,6 +254,9 @@ void auralize(char* file_path) {
 				else if (event.key.keysym.sym == SDLK_r) {
 					audio.render(scene, &cam, source);
 				}
+				else if (event.key.keysym.sym == SDLK_t) {
+					active_rendering = true;
+				}
 			}
 							  break;
 			case SDL_MOUSEBUTTONDOWN: {
@@ -252,7 +264,11 @@ void auralize(char* file_path) {
 									  break;
 			}
 		}
+
 		cam.update();
+		if (active_rendering) {
+			audio.render(scene, &cam, source);
+		}
 		draw();
 		pass->bind();
 		GLuint colorID = glGetUniformLocation(pass->getId(), "in_color");

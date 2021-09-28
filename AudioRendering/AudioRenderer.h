@@ -20,6 +20,7 @@ contiguous samples are 1/44100 seconds apart.*/
 #include<chrono>
 
 #include "AudioRenderingUtils.h"
+#include "AudioFile.h"
 
 typedef struct audioCallbackData {
 	unsigned int bufferFrames;
@@ -56,9 +57,10 @@ public:
 	int num_rays;
 	float source_power;
 	float listener_size;
+	int sample_rate;
 
 public:
-	AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size);
+	AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size, int sample_rate);
 	void render(Scene * scene, Camera * camera, Source * source);
 	~AudioRenderer();
 };

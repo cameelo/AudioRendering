@@ -26,4 +26,6 @@
 	<BEGIN>250</BEGIN>
 	<END>350</END>
 </ANALYZE>
+<OUT_SAMPLERATE>16000</OUT_SAMPLERATE>	<!-->Only used in auralization mode. Measured in Hz<!-->
+
 </SCENE>
