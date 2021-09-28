@@ -79,12 +79,13 @@ int inout(void *outputBuffer, void *inputBuffer, unsigned int /*nBufferFrames*/,
 	return 0;
 }
 
-AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size) {
+AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size, int sample_rate) {
 	this->max_reflexions = max_reflexions;
 	this->absorbtion_coef = absorbtion_coef;
 	this->num_rays = num_rays;
 	this->source_power = source_power;
 	this->listener_size = listener_size;
+	this->sample_rate = sample_rate;
 
 	//Init audio stream
 	this->audioApi = new RtAudio();
@@ -94,7 +95,7 @@ AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_
 		exit(0);
 	}
 
-	unsigned int bufferBytes, bufferFrames = 512, sampleRate = SAMPLE_RATE, input_channles = 1, output_channels = 2;
+	unsigned int bufferBytes, bufferFrames = 512, input_channles = 1, output_channels = 2;
 
 	//Set up stream parameters they need to be in heap since audio api will use them in separate thread
 	this->streamParams = new streamParameters();
@@ -117,7 +118,7 @@ AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_
 	this->audioData->bufferFrames = bufferFrames * input_channles;
 	this->audioData->pos = 0;
 	//1 second's worth of samples.
-	this->audioData->samplesRecordBufferSize = sampleRate * input_channles;
+	this->audioData->samplesRecordBufferSize = this->sample_rate * input_channles;
 	this->audioData->samplesRecordBuffer = new CircularBuffer<SAMPLE_TYPE>(this->audioData->samplesRecordBufferSize);
 	this->audioData->paths = new audioPaths();
 	this->audioData->paths->ptr = NULL;
@@ -126,7 +127,7 @@ AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_
 	//this->audioData->pool = new thread_pool(4);
 
 	try {
-		this->audioApi->openStream(this->streamParams->oParams, this->streamParams->iParams, SAMPLE_FORMAT, sampleRate,
+		this->audioApi->openStream(this->streamParams->oParams, this->streamParams->iParams, SAMPLE_FORMAT, this->sample_rate,
 			this->streamParams->bufferFrames, &processAudio, (void *)this->audioData, this->streamParams->options);
 	}
 	catch (RtAudioError& e) {
@@ -165,12 +166,12 @@ void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 		float elapsed_time = distance / SPEED_OF_SOUND;
 		//The elapsed time is then converted to a position in the array by multiplying the time by the samples per second
 		//This way a path that takes 1s to reach the listener will ocuppy the last position in the array.
-		unsigned int array_pos = round(elapsed_time * SAMPLE_RATE);
+		unsigned int array_pos = round(elapsed_time * this->sample_rate);
 		if (array_pos < this->audioData->samplesRecordBufferSize && array_pos >= 0) {
 			(*this->audioData->Rs)[array_pos] += remaining_factor;
 		}
 	}
-	std::ofstream rs_file("rs.txt");
+	/*std::ofstream rs_file("rs.txt");
 	rs_file << std::setprecision(7);
 	float received_energy = 0;
 	for (int i = 0; i < this->audioData->samplesRecordBufferSize; i++) {
@@ -178,7 +179,7 @@ void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 		received_energy += (*this->audioData->Rs)[i];
 	}
 	rs_file << std::endl << received_energy;
-	rs_file.close();
+	rs_file.close();*/
 }
 
 AudioRenderer::~AudioRenderer() {
