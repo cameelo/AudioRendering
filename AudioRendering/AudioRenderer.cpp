@@ -5,6 +5,7 @@
 #include <iomanip>
 
 std::mutex outputBufferMutex;
+std::mutex inputBufferMutex;
 
 //void rowColumnProduct(int begin, int end, void * outputBuffer, audioCallbackData * renderData) {
 //	for (int i = begin; i <= end; i++) {
@@ -65,6 +66,53 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 		//	
 		//}
 	}
+	return 0;
+}
+
+//Callback that processes audio frames
+int processAudioSample(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
+	double streamTime, RtAudioStreamStatus status, void *data)
+{
+	if (status) std::cout << "Stream over/underflow detected." << std::endl;
+
+	audioCallbackData *renderData = (audioCallbackData *)data;
+	memset(outputBuffer, 0, renderData->bufferFrames * sizeof(SAMPLE_TYPE));
+
+	unsigned int RvIndex;
+
+	size_t size = renderData->samplesRecordBufferSize / 2;
+
+	for (int i = 0; i < renderData->bufferFrames; i++) {
+		SAMPLE_TYPE output_value = 0;
+		for (int j = 0; j < size - i; j++) {
+			output_value += (*renderData->Rs)[j] * renderData->samplesRecordBuffer->getElement(size - 1 - i - j);
+		}
+		outputBufferMutex.lock();
+		//Output has 2 channels
+		RvIndex = (renderData->bufferFrames * 2) - 1 - (i * 2);
+		((SAMPLE_TYPE*)outputBuffer)[RvIndex] = output_value;
+		((SAMPLE_TYPE*)outputBuffer)[RvIndex - 1] = output_value;
+		outputBufferMutex.unlock();
+	}
+	for (int i = 0; i < renderData->bufferFrames; i++) {
+		renderData->samplesRecordBuffer->setElement(i, 0);
+	}
+
+	//for (int i = 0; i < renderData->bufferFrames; i++) {
+	//	outputBufferMutex.lock();
+	//	//Output has 2 channels
+	//	((SAMPLE_TYPE*)outputBuffer)[i*2] = renderData->samplesRecordBuffer->getElement(i);
+	//	((SAMPLE_TYPE*)outputBuffer)[(i*2)+1] = renderData->samplesRecordBuffer->getElement(i);
+	//	outputBufferMutex.unlock();
+	//}
+
+	//for (int i = 0; i < renderData->bufferFrames; i++) {
+	//	renderData->samplesRecordBuffer->setElement(i, 0);
+	//}
+
+	renderData->samplesRecordBuffer->head = (renderData->samplesRecordBuffer->head + renderData->bufferFrames) % renderData->samplesRecordBufferSize;
+	renderData->samplesRecordBuffer->tail = (renderData->samplesRecordBuffer->tail + renderData->bufferFrames) % renderData->samplesRecordBufferSize;
+
 	return 0;
 }
 
@@ -152,6 +200,94 @@ AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_
 	this->audioData->Rs = new std::vector<float>(this->audioData->samplesRecordBufferSize);
 }
 
+AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size, int sample_rate, const char* audio_sample) {
+	//Same as other constructor but audiostream is not started. Instead, stream is (created and) started on demand
+	this->max_reflexions = max_reflexions;
+	this->absorbtion_coef = absorbtion_coef;
+	this->num_rays = num_rays;
+	this->source_power = source_power;
+	this->listener_size = listener_size;
+	this->sample_rate = sample_rate;
+
+	//Init audio stream
+	this->audioApi = new RtAudio();
+
+	if (this->audioApi->getDeviceCount() < 1) {
+		std::cout << "\nNo audio devices found!\n";
+		exit(0);
+	}
+
+	unsigned int bufferBytes, bufferFrames = 512, input_channles = 1, output_channels = 2;
+
+	//Set up stream parameters they need to be in heap since audio api will use them in separate thread
+	this->streamParams = new streamParameters();
+	this->streamParams->oParams = new RtAudio::StreamParameters();
+	this->streamParams->oParams->deviceId = this->audioApi->getDefaultOutputDevice();
+	this->streamParams->oParams->nChannels = output_channels;
+	this->streamParams->oParams->firstChannel = 0;
+	this->streamParams->bufferFrames = new unsigned int(bufferFrames);
+	this->streamParams->options = new RtAudio::StreamOptions();
+
+	//This whole struct will be accessed from the audio api thread, so it needs to be in heap.
+	this->audioData = new audioCallbackData();
+	//Total frames in a buffer for all channels
+	this->audioData->bufferFrames = bufferFrames;
+	this->audioData->pos = 0;
+	// To fit 1 second's worth of samples we need a 2 seconds long buffer. We copy the sample's samples in the second half of the buffer and let it go from there.
+	// Audio sample must be less than a second long
+	this->audioData->samplesRecordBufferSize = this->sample_rate * 2;
+	this->audioData->samplesRecordBuffer = new CircularBuffer<SAMPLE_TYPE>(this->audioData->samplesRecordBufferSize);
+	this->audioData->paths = new audioPaths();
+	this->audioData->paths->ptr = NULL;
+	this->audioData->paths->size = 0;
+	this->audioData->paths->mutex = new std::mutex();
+
+	this->currentPaths = new audioPaths();
+	this->currentPaths->ptr = NULL;
+	this->currentPaths->size = 0;
+	this->currentPaths->mutex = new std::mutex;
+
+	//Create Rs vector
+	this->audioData->Rs = new std::vector<float>(this->audioData->samplesRecordBufferSize);
+
+	this->audio_sample_file.load(audio_sample);
+}
+
+void AudioRenderer::resetStream() {
+	if (this->audioApi->isStreamOpen()) {
+		try {
+			this->audioApi->closeStream();
+		}
+		catch (RtAudioError& e) {
+			e.printMessage();
+			exit(0);
+		}
+	}
+
+	memset(this->audioData->samplesRecordBuffer->buffer, 0, this->audioData->samplesRecordBufferSize);
+	this->audioData->samplesRecordBuffer->head = 0;
+	this->audioData->samplesRecordBuffer->tail = 0;
+	this->audioData->samplesRecordBuffer->insertSampleElements((SAMPLE_TYPE*)&this->audio_sample_file.samples[0][0], this->audio_sample_file.samples[0].size());
+	this->audioData->samplesRecordBuffer->tail = this->audioData->samplesRecordBufferSize/2 - 1;
+
+	try {
+		this->audioApi->openStream(this->streamParams->oParams, NULL, SAMPLE_FORMAT, this->sample_rate,
+			this->streamParams->bufferFrames, &processAudioSample, (void *)this->audioData, this->streamParams->options);
+	}
+	catch (RtAudioError& e) {
+		e.printMessage();
+		exit(0);
+	}
+	try {
+		this->audioApi->startStream();
+	}
+	catch (RtAudioError& e) {
+		e.printMessage();
+		exit(0);
+	}
+
+}
+
 void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 	RayTracer rt = RayTracer(scene, camera->pos, this->listener_size, source->pos, this->source_power, this->currentPaths, this->max_reflexions, 1-(this->absorbtion_coef), this->num_rays);
 	rt.OmnidirectionalUniformSphereRayCast();
@@ -171,15 +307,15 @@ void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 			(*this->audioData->Rs)[array_pos] += remaining_factor;
 		}
 	}
-	/*std::ofstream rs_file("rs.txt");
-	rs_file << std::setprecision(7);
-	float received_energy = 0;
-	for (int i = 0; i < this->audioData->samplesRecordBufferSize; i++) {
-		rs_file << (*this->audioData->Rs)[i] << ",";
-		received_energy += (*this->audioData->Rs)[i];
-	}
-	rs_file << std::endl << received_energy;
-	rs_file.close();*/
+	//std::ofstream rs_file("rs.txt");
+	//rs_file << std::setprecision(7);
+	//float received_energy = 0;
+	//for (int i = 0; i < this->audioData->samplesRecordBufferSize; i++) {
+	//	rs_file << (*this->audioData->Rs)[i] << ",";
+	//	received_energy += (*this->audioData->Rs)[i];
+	//}
+	//rs_file << std::endl << received_energy;
+	//rs_file.close();
 }
 
 AudioRenderer::~AudioRenderer() {
