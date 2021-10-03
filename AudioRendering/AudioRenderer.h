@@ -58,9 +58,13 @@ public:
 	float source_power;
 	float listener_size;
 	int sample_rate;
+	AudioFile<float> audio_sample_file;
 
 public:
+	AudioRenderer(){};
 	AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size, int sample_rate);
+	AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size, int sample_rate, const char * audio_sample);
+	void resetStream();
 	void render(Scene * scene, Camera * camera, Source * source);
 	~AudioRenderer();
 };

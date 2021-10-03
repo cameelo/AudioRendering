@@ -69,6 +69,17 @@ public:
 		}
 	}
 
+	//set the element with absolute position pos
+	void setElement(size_t pos, T elem) {
+		if (head + pos < size) {
+			buffer[head + pos] = elem;
+		}
+		else {
+			size_t remainder = pos - (size - head);
+			buffer[remainder] = elem;
+		}
+	}
+
 	void copyElements(T * output, size_t size) {
 		if (this->tail < size - 1) {
 			size_t carry_over = (size - 1) - this->tail;
@@ -88,6 +99,11 @@ public:
 	//		renderData->samplesRecordBuffer->addToOutput(index + 1, renderData->paths->ptr[i].remaining_energy_factor * renderData->samplesRecordBuffer->buffer[iter + 1]);
 	//	}
 	//}
+
+	void insertSampleElements(T * source, size_t size) {
+		memcpy(&this->buffer[this->size/2], source, size * sizeof(T));
+	}
+
 	T& operator[](size_t idx){
 		return this->buffer[idx];
 	}

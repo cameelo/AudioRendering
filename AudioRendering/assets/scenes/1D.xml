@@ -5,9 +5,9 @@
 <SIZE>1.0</SIZE>	<!-->Model's scale<!-->
 <MAX_REFLEXIONS>30</MAX_REFLEXIONS>
 <ABSORBTION>0.01</ABSORBTION>
-<NUM_RAYS>10000000</NUM_RAYS>
+<NUM_RAYS>100000</NUM_RAYS>
 <SOURCE>
-	<POWER>31.62</POWER>	<!-->Sound level of the source: Lw<!-->
+	<POWER>100</POWER>	<!-->Sound level of the source: Lw<!-->
 	<POS_X>0.0</POS_X>
 	<POS_Y>0.0</POS_Y>
 	<POS_Z>0.0</POS_Z>
@@ -27,5 +27,6 @@
 	<END>350</END>
 </ANALYZE>
 <OUT_SAMPLERATE>16000</OUT_SAMPLERATE>	<!-->Only used in auralization mode. Measured in Hz<!-->
+<SOUND_SAMPLE>assets/sound_samples/clap_sample_mono.wav</SOUND_SAMPLE><!-->Path of a file with a sound sample for auralization. Sample rate must match out_samplerate<!-->
 
 </SCENE>
