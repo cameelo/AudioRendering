@@ -80,7 +80,9 @@ int processAudioSample(void *outputBuffer, void *inputBuffer, unsigned int nBuff
 
 	unsigned int RvIndex;
 
-	size_t size = renderData->samplesRecordBufferSize / 2;
+	// To have a window of 1 second of samples is to have a windoe of size equal to se samplerate. A 2 second window is (2 * sample_rate) long.
+	// This is implicit in Rs's size. We compute it so the window is 1 second long.
+	size_t size = renderData->Rs->size();
 
 	for (int i = 0; i < renderData->bufferFrames; i++) {
 		SAMPLE_TYPE output_value = 0;
@@ -233,9 +235,13 @@ AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_
 	//Total frames in a buffer for all channels
 	this->audioData->bufferFrames = bufferFrames;
 	this->audioData->pos = 0;
-	// To fit 1 second's worth of samples we need a 2 seconds long buffer. We copy the sample's samples in the second half of the buffer and let it go from there.
-	// Audio sample must be less than a second long
-	this->audioData->samplesRecordBufferSize = this->sample_rate * 2;
+	this->audio_sample_file.load(audio_sample);
+
+	// The size of the buffer depends on the lenght of the audio file. We want to load the samples just once, so we don't have to do any extra computations while the sample is playing.
+	// The buffer needs to fit the entire audio sample, plus, an empty space of size sample_rate so the stream can start just before the audio starts playing.
+	
+	int audio_length = ceil(this->audio_sample_file.getLengthInSeconds());
+	this->audioData->samplesRecordBufferSize = (audio_length + 1) * this->sample_rate;
 	this->audioData->samplesRecordBuffer = new CircularBuffer<SAMPLE_TYPE>(this->audioData->samplesRecordBufferSize);
 	this->audioData->paths = new audioPaths();
 	this->audioData->paths->ptr = NULL;
@@ -248,9 +254,7 @@ AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_
 	this->currentPaths->mutex = new std::mutex;
 
 	//Create Rs vector
-	this->audioData->Rs = new std::vector<float>(this->audioData->samplesRecordBufferSize);
-
-	this->audio_sample_file.load(audio_sample);
+	this->audioData->Rs = new std::vector<float>(this->sample_rate);
 }
 
 void AudioRenderer::resetStream() {
@@ -267,8 +271,8 @@ void AudioRenderer::resetStream() {
 	memset(this->audioData->samplesRecordBuffer->buffer, 0, this->audioData->samplesRecordBufferSize);
 	this->audioData->samplesRecordBuffer->head = 0;
 	this->audioData->samplesRecordBuffer->tail = 0;
-	this->audioData->samplesRecordBuffer->insertSampleElements((SAMPLE_TYPE*)&this->audio_sample_file.samples[0][0], this->audio_sample_file.samples[0].size());
-	this->audioData->samplesRecordBuffer->tail = this->audioData->samplesRecordBufferSize/2 - 1;
+	this->audioData->samplesRecordBuffer->insertSampleElements((SAMPLE_TYPE*)&this->audio_sample_file.samples[0][0], this->sample_rate, this->audio_sample_file.samples[0].size());
+	this->audioData->samplesRecordBuffer->tail = this->sample_rate - 1;
 
 	try {
 		this->audioApi->openStream(this->streamParams->oParams, NULL, SAMPLE_FORMAT, this->sample_rate,
