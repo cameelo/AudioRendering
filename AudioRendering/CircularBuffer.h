@@ -100,8 +100,8 @@ public:
 	//	}
 	//}
 
-	void insertSampleElements(T * source, size_t size) {
-		memcpy(&this->buffer[this->size/2], source, size * sizeof(T));
+	void insertSampleElements(T * source, size_t start, size_t size) {
+		memcpy(&this->buffer[start], source, size * sizeof(T));
 	}
 
 	T& operator[](size_t idx){
