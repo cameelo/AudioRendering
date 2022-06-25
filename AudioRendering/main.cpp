@@ -268,10 +268,19 @@ void auralize(char* file_path) {
 					active_rendering = true;
 					break;
 				}
+				else if (event.key.keysym.sym == SDLK_j) {
+					audio.updateVolume(-1.0);
+					break;
+				}
+				else if (event.key.keysym.sym == SDLK_k) {
+					audio.updateVolume(1.0);
+					break;
+				}
 				else if (event.key.keysym.sym == SDLK_SPACE) {
 					audio.resetStream();
 					break;
 				}
+
 			}
 							  break;
 			case SDL_MOUSEBUTTONDOWN: {

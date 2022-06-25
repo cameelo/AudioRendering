@@ -49,8 +49,8 @@ int processAudio(void *outputBuffer, void *inputBuffer, unsigned int nBufferFram
 			outputBufferMutex.lock();
 			//Output has 2 channels
 			RvIndex = (renderData->bufferFrames * 2) - 1 - (i * 2);
-			((SAMPLE_TYPE*)outputBuffer)[RvIndex] = output_value;
-			((SAMPLE_TYPE*)outputBuffer)[RvIndex - 1] = output_value;
+			((SAMPLE_TYPE*)outputBuffer)[RvIndex] = output_value * renderData->volume;
+			((SAMPLE_TYPE*)outputBuffer)[RvIndex - 1] = output_value * renderData->volume;
 			outputBufferMutex.unlock();
 		}
 
@@ -92,8 +92,8 @@ int processAudioSample(void *outputBuffer, void *inputBuffer, unsigned int nBuff
 		outputBufferMutex.lock();
 		//Output has 2 channels
 		RvIndex = (renderData->bufferFrames * 2) - 1 - (i * 2);
-		((SAMPLE_TYPE*)outputBuffer)[RvIndex] = output_value;
-		((SAMPLE_TYPE*)outputBuffer)[RvIndex - 1] = output_value;
+		((SAMPLE_TYPE*)outputBuffer)[RvIndex] = output_value  * renderData->volume;
+		((SAMPLE_TYPE*)outputBuffer)[RvIndex - 1] = output_value * renderData->volume;
 		outputBufferMutex.unlock();
 	}
 	for (int i = 0; i < renderData->bufferFrames; i++) {
@@ -174,6 +174,7 @@ AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_
 	this->audioData->paths->ptr = NULL;
 	this->audioData->paths->size = 0;
 	this->audioData->paths->mutex = new std::mutex();
+	this->audioData->volume = 30.0f;
 	//this->audioData->pool = new thread_pool(4);
 
 	try {
@@ -247,6 +248,7 @@ AudioRenderer::AudioRenderer(int max_reflexions, float absorbtion_coef, int num_
 	this->audioData->paths->ptr = NULL;
 	this->audioData->paths->size = 0;
 	this->audioData->paths->mutex = new std::mutex();
+	this->audioData->volume = 30.0f;
 
 	this->currentPaths = new audioPaths();
 	this->currentPaths->ptr = NULL;
@@ -320,6 +322,11 @@ void AudioRenderer::render(Scene * scene, Camera * camera, Source * source) {
 	//}
 	//rs_file << std::endl << received_energy;
 	//rs_file.close();
+}
+
+void AudioRenderer::updateVolume(float value) {
+	this->audioData->volume += value;
+	std::cout << this->audioData->volume << std::endl;
 }
 
 AudioRenderer::~AudioRenderer() {
