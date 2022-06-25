@@ -34,6 +34,7 @@ typedef struct audioCallbackData {
 	If Rs's values go from 0 to 1, then the SAMPLE_TYPE should allow decimal values*/
 	std::vector<float> * Rs;
 	//thread_pool * pool;
+	float volume;
 } audioCallbackData;
 
 typedef struct streamParameters {
@@ -66,5 +67,6 @@ public:
 	AudioRenderer(int max_reflexions, float absorbtion_coef, int num_rays, float source_power, float listener_size, int sample_rate, const char * audio_sample);
 	void resetStream();
 	void render(Scene * scene, Camera * camera, Source * source);
+	void updateVolume(float value);
 	~AudioRenderer();
 };
